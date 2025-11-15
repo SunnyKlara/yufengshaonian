@@ -1,0 +1,2089 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>驭风少年 - 桌面风洞模型</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#0E2E5C',
+                        accent: '#00C2FF',
+                        dark: '#1D2129',
+                        light: '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        .animation-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            background-color: white;
+        }
+        .square {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            border: 2px solid #000;
+        }
+        .dot {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #000;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+        .diagonal {
+            position: absolute;
+            height: 2px;
+            background-color: #000;
+            transform-origin: left center;
+            opacity: 0;
+        }
+        .circle {
+            position: absolute;
+            border: 2px solid #000;
+            border-radius: 50%;
+            opacity: 0;
+        }
+    </style>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .text-gradient {
+                background-clip: text;
+                -webkit-background-clip: text;
+                color: transparent;
+            }
+            .animate-float {
+                animation: float 6s ease-in-out infinite;
+            }
+            .animate-spin-slow {
+                animation: spin 30s linear infinite;
+            }
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+            }
+            .scrollbar-hide {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        
+        .animate-fadeIn {
+            animation: fadeIn 1.5s ease-in-out forwards;
+        }
+
+        /* 舞台灯光效果 */
+        @keyframes stageLight {
+            0% {
+                opacity: 0;
+                filter: brightness(0.3);
+            }
+            50% {
+                opacity: 0.8;
+                filter: brightness(0.8);
+            }
+            100% {
+                opacity: 1;
+                filter: brightness(1);
+            }
+        }
+
+        @keyframes productGlow {
+            0% {
+                opacity: 0;
+                filter: brightness(0.2) drop-shadow(0 0 0px rgba(74, 159, 181, 0));
+            }
+            50% {
+                filter: brightness(0.6) drop-shadow(0 0 20px rgba(74, 159, 181, 0.5));
+            }
+            100% {
+                opacity: 1;
+                filter: brightness(1.25) drop-shadow(0 0 40px rgba(0, 194, 255, 0.3));
+            }
+        }
+
+        @keyframes textSlideIn {
+            0% {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes spotlightSweep {
+            0% {
+                opacity: 0;
+                transform: scaleX(0.5);
+            }
+            50% {
+                opacity: 0.3;
+            }
+            100% {
+                opacity: 0;
+                transform: scaleX(1);
+            }
+        }
+
+        .hero-stage-light {
+            animation: stageLight 3s ease-out forwards;
+        }
+
+        .hero-product-glow {
+            animation: productGlow 3.5s ease-out forwards;
+        }
+
+        .hero-text-slide {
+            animation: textSlideIn 2s ease-out forwards;
+            opacity: 0;
+        }
+
+        .hero-text-slide:nth-child(1) {
+            animation-delay: 0.3s;
+        }
+
+        .hero-text-slide:nth-child(2) {
+            animation-delay: 0.6s;
+        }
+
+        .hero-text-slide:nth-child(3) {
+            animation-delay: 0.9s;
+        }
+
+        .hero-text-slide:nth-child(4) {
+            animation-delay: 1.2s;
+        }
+
+        .spotlight-effect {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 194, 255, 0.2), transparent);
+            animation: spotlightSweep 2s ease-out forwards;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="font-inter bg-black text-dark overflow-x-hidden">
+    <div id="main-content">
+    <!-- 导航栏 -->
+    <header id="navbar" class="fixed w-full top-0 z-50 transition-all duration-300 bg-black shadow-md">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <a href="#" class="flex items-center space-x-2">
+                <div class="w-10 h-10 bg-black rounded-lg flex items-center justify-center border border-white/10">
+                    <!-- SVG LOGO START -->
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="2" y="2" width="24" height="24" stroke="white" stroke-width="2"/>
+                        <line x1="3" y1="25" x2="25" y2="3" stroke="white" stroke-width="2"/>
+                        <circle cx="19" cy="19" r="7" stroke="white" stroke-width="2"/>
+                    </svg>
+                    <!-- SVG LOGO END -->
+                </div>
+                <span class="text-xl font-bold text-white tracking-wide">RideWind</span>
+            </a>
+            <nav class="hidden lg:flex space-x-6 ml-12">
+                <a id="nav-home" href="#home" class="text-white hover:text-primary transition-colors font-medium text-sm">首页</a>
+                <a id="nav-product" href="#product" class="text-white hover:text-primary transition-colors font-medium text-sm">产品介绍</a>
+                <a id="nav-features" href="#features" class="text-white hover:text-primary transition-colors font-medium text-sm">产品特性</a>
+                <a id="nav-gallery" href="#gallery" class="text-white hover:text-primary transition-colors font-medium text-sm">产品展示</a>
+                <a id="nav-usage" href="#usage" class="text-white hover:text-primary transition-colors font-medium text-sm">使用教程</a>
+                <div class="relative group">
+                  <a id="nav-explore" href="#explore" class="text-white hover:text-primary transition-colors font-medium text-sm flex items-center">
+                    探索
+                    <span id="explore-corner" class="ml-1 inline-block transition-transform duration-300 rotate-0">
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <polyline points="2,5 7,10 12,5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </span>
+                  </a>
+                  <div class="absolute left-1/2 -translate-x-1/2 mt-2 w-[700px] bg-white rounded-2xl shadow-2xl py-6 px-8 opacity-0 scale-95 invisible group-hover:opacity-100 group-hover:scale-100 group-hover:visible transition-all duration-300 z-50">
+                    <div class="grid grid-cols-3 gap-6 justify-items-center">
+                      <a href="about.html" class="block group/item rounded-xl overflow-hidden hover:bg-primary/10 transition p-3 w-56">
+                        <div class="relative overflow-hidden">
+                          <img loading="lazy" src="gallery2.jpg" alt="关于驭风" class="w-full h-28 object-cover rounded-t-xl shadow-md transition-transform duration-300 group-hover/item:scale-105 group-hover/item:brightness-110">
+                        </div>
+                        <div class="font-bold text-dark text-lg mb-1 text-center" id="explore-about-title">关于驭风</div>
+                        <div class="text-gray-500 text-sm text-center" id="explore-about-desc">了解品牌故事与使命</div>
+                      </a>
+                      <a href="contact.html" class="block group/item rounded-xl overflow-hidden hover:bg-primary/10 transition p-3 w-56">
+                        <div class="relative overflow-hidden">
+                          <img src="https://images.unsplash.com/photo-1520880867055-1e30d1cb001c?auto=format&fit=crop&w=400&q=80" alt="联系我们" class="w-full h-28 object-cover rounded-t-xl shadow-md transition-transform duration-300 group-hover/item:scale-105 group-hover/item:brightness-110">
+                        </div>
+                        <div class="font-bold text-dark text-lg mb-1 text-center" id="explore-contact-title">联系我们</div>
+                        <div class="text-gray-500 text-sm text-center" id="explore-contact-desc">获取售前售后支持</div>
+                      </a>
+                      <a href="join.html" class="block group/item rounded-xl overflow-hidden hover:bg-primary/10 transition p-3 w-56">
+                        <div class="relative overflow-hidden">
+                          <img src="https://images.unsplash.com/photo-1521737852567-6949f3f9f2b5?auto=format&fit=crop&w=400&q=80" alt="加入我们" class="w-full h-28 object-cover rounded-t-xl shadow-md transition-transform duration-300 group-hover/item:scale-105 group-hover/item:brightness-110">
+                        </div>
+                        <div class="font-bold text-dark text-lg mb-1 text-center" id="explore-join-title">加入我们</div>
+                        <div class="text-gray-500 text-sm text-center" id="explore-join-desc">成为团队一员，共创未来</div>
+                      </a>
+                      <a href="events.html" class="block group/item rounded-xl overflow-hidden hover:bg-primary/10 transition p-3 w-56">
+                        <div class="relative overflow-hidden">
+                          <img src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=400&q=80" alt="用户活动" class="w-full h-28 object-cover rounded-t-xl shadow-md transition-transform duration-300 group-hover/item:scale-105 group-hover/item:brightness-110">
+                        </div>
+                        <div class="font-bold text-dark text-lg mb-1 text-center" id="explore-events-title">用户活动</div>
+                        <div class="text-gray-500 text-sm text-center" id="explore-events-desc">参与精彩社区与线下活动</div>
+                      </a>
+                      <a href="blog.html" class="block group/item rounded-xl overflow-hidden hover:bg-primary/10 transition p-3 w-56">
+                        <div class="relative overflow-hidden">
+                          <img src="https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=400&q=80" alt="Blog" class="w-full h-28 object-cover rounded-t-xl shadow-md transition-transform duration-300 group-hover/item:scale-105 group-hover/item:brightness-110">
+                        </div>
+                        <div class="font-bold text-dark text-lg mb-1 text-center" id="explore-blog-title">Blog</div>
+                        <div class="text-gray-500 text-sm text-center" id="explore-blog-desc">阅读最新动态与科普内容</div>
+                      </a>
+                      <a href="explore-more.html" class="block group/item rounded-xl overflow-hidden hover:bg-primary/10 transition p-3 w-56">
+                        <div class="relative overflow-hidden">
+                          <img src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=400&q=80" alt="探索更多" class="w-full h-28 object-cover rounded-t-xl shadow-md transition-transform duration-300 group-hover/item:scale-105 group-hover/item:brightness-110">
+                        </div>
+                        <div class="font-bold text-dark text-lg mb-1 text-center" id="explore-more-title">探索更多</div>
+                        <div class="text-gray-500 text-sm text-center" id="explore-more-desc">发现更多精彩内容</div>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+                <div class="relative group">
+                  <a id="nav-software" href="#" class="text-white hover:text-primary transition-colors font-medium text-sm flex items-center">
+                    <span id="nav-software-text">软件</span>
+                    <span id="software-corner" class="ml-1 inline-block transition-transform duration-300 rotate-0">
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <polyline points="2,5 7,10 12,5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </span>
+                  </a>
+                  <div class="absolute left-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl py-4 px-2 opacity-0 scale-95 invisible group-hover:opacity-100 group-hover:scale-100 group-hover:visible transition-all duration-300 z-50">
+                    <a id="nav-app" href="#" class="block px-6 py-3 text-dark hover:bg-primary/10 hover:text-primary rounded-lg font-medium transition text-sm">APP下载</a>
+                    <a id="nav-tool" href="analyze.html" class="block px-6 py-3 text-dark hover:bg-primary/10 hover:text-primary rounded-lg font-medium transition text-sm">数据分析工具</a>
+                    <a id="nav-firmware" href="#" class="block px-6 py-3 text-dark hover:bg-primary/10 hover:text-primary rounded-lg font-medium transition text-sm">固件升级</a>
+                  </div>
+                </div>
+                <div class="flex items-center gap-x-3">
+                    <button id="nav-login-btn" class="px-4 py-1.5 rounded-full font-semibold text-sm bg-gradient-to-r from-primary via-accent to-blue-400 text-white shadow-lg ring-2 ring-primary/30 hover:from-blue-500 hover:to-primary hover:scale-105 hover:shadow-2xl hover:ring-accent/60 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-accent/40">登录 / 注册</button>
+                    <a id="nav-buy-btn" href="#purchase" class="px-4 py-1.5 rounded-full font-medium text-sm bg-gradient-to-r from-primary via-accent to-blue-400 text-white shadow-lg ring-2 ring-primary/30 hover:from-blue-500 hover:to-primary hover:scale-105 hover:shadow-2xl hover:ring-accent/60 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-accent/40">立即购买</a>
+                    <button id="lang-switch" class="px-3 py-1.5 rounded-full font-semibold text-sm bg-gradient-to-r from-primary via-accent to-blue-400 text-white shadow-lg ring-2 ring-primary/30 hover:from-blue-500 hover:to-primary hover:scale-105 hover:shadow-2xl hover:ring-accent/60 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-accent/40">English</button>
+                </div>
+            </nav>
+            
+            <!-- 移动端菜单按钮 -->
+            <div class="lg:hidden flex items-center gap-2">
+                <button id="lang-switch-mobile" class="px-2 py-1 rounded-full font-semibold text-xs bg-gradient-to-r from-primary via-accent to-blue-400 text-white shadow-lg ring-1 ring-primary/30 hover:scale-105 transition-all duration-300">EN</button>
+                <button id="mobile-menu-btn" class="p-2 text-white hover:text-primary transition-colors">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <!-- 移动端导航菜单 -->
+        <div id="mobile-menu" class="hidden lg:hidden fixed top-16 left-0 right-0 bg-black shadow-lg z-40 max-h-[calc(100vh-64px)] overflow-y-auto">
+            <nav class="flex flex-col">
+                <a href="#home" class="px-6 py-3 border-b border-gray-800 text-white hover:bg-primary/10 text-sm">首页</a>
+                <a href="#product" class="px-6 py-3 border-b border-gray-800 text-white hover:bg-primary/10 text-sm">产品介绍</a>
+                <a href="#features" class="px-6 py-3 border-b border-gray-800 text-white hover:bg-primary/10 text-sm">产品特性</a>
+                <a href="#gallery" class="px-6 py-3 border-b border-gray-800 text-white hover:bg-primary/10 text-sm">产品展示</a>
+                <a href="#usage" class="px-6 py-3 border-b border-gray-800 text-white hover:bg-primary/10 text-sm">使用教程</a>
+                <a href="#explore" class="px-6 py-3 border-b border-gray-800 text-white hover:bg-primary/10 text-sm">探索</a>
+                <a href="#" class="px-6 py-3 border-b border-gray-800 text-white hover:bg-primary/10 text-sm">软件下载</a>
+                <a href="#purchase" class="px-6 py-3 border-b border-gray-800 text-white hover:bg-primary/10 text-sm">立即购买</a>
+            </nav>
+            <!-- 移动端登录按钮 -->
+            <div class="flex justify-center py-4 border-t border-gray-800">
+                <button id="user-avatar-btn-mobile" class="px-6 py-2 rounded-full bg-gradient-to-r from-primary via-accent to-blue-400 text-white font-semibold text-sm shadow-lg ring-2 ring-primary/30 hover:from-blue-500 hover:to-primary hover:scale-105 hover:shadow-2xl hover:ring-accent/60 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-accent/40">
+                    登录 / 注册
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 用户注册/登录模态框 -->
+    <div id="user-modal" class="fixed inset-0 z-[999] flex items-center justify-center bg-black/40 backdrop-blur-sm hidden">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-0 relative animate-fadeIn">
+            <div class="border-b px-8 pt-8 pb-4 flex justify-between items-center rounded-t-3xl">
+                <span class="text-xl font-bold text-gray-800">驭风少年账号</span>
+                <button id="user-modal-close" class="text-gray-400 hover:text-primary text-2xl">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <div class="px-8 pt-6 pb-8">
+                <div class="text-center mb-8">
+                    <span class="text-2xl font-semibold text-gray-800">登录 / 注册</span>
+                </div>
+                <!-- 手机号+验证码表单 -->
+                <form id="form-sms" class="space-y-6">
+                    <div>
+                        <label class="block mb-2 text-gray-700">手机号<span class="text-red-500">*</span></label>
+                        <input type="tel" id="sms-phone" maxlength="11" class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:border-primary" placeholder="请输入手机号" required>
+                    </div>
+                    <div class="flex items-start justify-start space-x-2">
+                        <div class="flex-1">
+                            <label class="block mb-2 text-gray-700">验证码<span class="text-red-500">*</span></label>
+                            <input type="text" id="sms-code" maxlength="6" class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:border-primary" placeholder="请输入验证码" required>
+                        </div>
+                        <button type="button" id="btn-send-code" class="mt-6 px-4 py-2 bg-gray-100 text-gray-500 rounded-lg border border-gray-200 hover:bg-primary/10 hover:text-primary transition-all">发送验证码</button>
+                    </div>
+                    <button id="btn-sms-login" type="submit" class="w-full bg-gray-200 text-gray-400 py-3 rounded-lg font-semibold transition-all cursor-not-allowed" disabled>登录 / 注册</button>
+                </form>
+                <div class="text-center my-4">
+                    <button id="btn-switch-pwd" class="text-primary font-medium hover:underline">密码登录</button>
+                </div>
+                <!-- 密码登录表单 -->
+                <form id="form-pwd" class="space-y-6 hidden">
+                    <div>
+                        <label class="block mb-2 text-gray-700">手机号<span class="text-red-500">*</span></label>
+                        <input type="tel" id="pwd-phone" maxlength="11" class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:border-primary" placeholder="请输入手机号" required>
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-gray-700">密码<span class="text-red-500">*</span></label>
+                        <input type="password" id="pwd-password" class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:border-primary" placeholder="请输入密码" required>
+                    </div>
+                    <button id="btn-pwd-login" type="submit" class="w-full bg-gray-200 text-gray-400 py-3 rounded-lg font-semibold transition-all cursor-not-allowed" disabled>登录</button>
+                </form>
+                <div class="text-center my-4 hidden" id="btn-switch-sms-wrap">
+                    <button id="btn-switch-sms" class="text-primary font-medium hover:underline">短信登录</button>
+                </div>
+                <div class="flex items-center mt-4 mb-2">
+                    <input type="checkbox" id="agree-protocol" class="mr-2">
+                    <label for="agree-protocol" class="text-gray-600 text-sm select-none">我已阅读并同意<a href="#" class="text-primary hover:underline">用户协议</a>和<a href="#" class="text-primary hover:underline">隐私政策</a>。</label>
+                </div>
+                <div class="text-center text-gray-400 text-sm mb-2 mt-6">第三方登录</div>
+                <div class="flex justify-center space-x-6 mb-2">
+                    <button class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 text-xl" title="QQ登录"><i class="fa fa-qq"></i></button>
+                    <button class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-500 text-xl" title="微信登录"><i class="fa fa-wechat"></i></button>
+                    <button class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-800 text-xl" title="GitHub登录"><i class="fa fa-github"></i></button>
+                    <button class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 text-xl" title="Apple登录"><i class="fa fa-apple"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 英雄区域 - 大疆风格设计 + 舞台灯光效果 -->
+    <section id="home" class="w-full overflow-hidden bg-black relative hero-stage-light" style="height: 100vh; min-height: 100vh;">
+        <!-- 舞台聚光灯效果 -->
+        <div class="spotlight-effect"></div>
+        
+        <!-- 背景：全屏海报图（右侧） -->
+        <div class="absolute inset-0 flex items-center justify-end hero-product-glow">
+            <img src="./image.png (4).png" alt="驭风少年桌面风洞模型" class="h-full object-contain opacity-100 brightness-125 contrast-110">
+        </div>
+        
+        <!-- 渐变遮罩 - 左侧增强文案可读性 -->
+        <div class="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent"></div>
+        
+        <!-- 文案和按钮区域 - 左侧 -->
+        <div class="absolute inset-0 flex flex-col items-start justify-center z-10 px-12 md:px-32 lg:px-40 max-w-5xl">
+            <!-- 产品名称 -->
+            <div class="mb-6 md:mb-8 hero-text-slide">
+                <span class="text-3xl md:text-4xl lg:text-5xl font-black text-[#4A9FB5] tracking-[0.02em] leading-tight">RideWind T1</span>
+            </div>
+            
+            <!-- 主标题 - 一行排布 -->
+            <h1 class="text-4xl md:text-5xl lg:text-6xl font-black mb-8 md:mb-10 leading-tight hero-text-slide">
+                <span id="hero-title-main" class="text-gradient bg-gradient-to-r from-[#4A9FB5] via-[#00C2FF] to-white bg-clip-text text-transparent">
+                    眼见为实 一洞知风
+                </span>
+            </h1>
+            
+            <!-- 副标题/标语 -->
+            <p class="text-sm md:text-base mb-12 md:mb-16 font-light tracking-wide hero-text-slide">
+                <span id="hero-title-sub" class="text-gradient bg-gradient-to-r from-[#4A9FB5] via-[#00C2FF] to-white bg-clip-text text-transparent">
+                    重新定义桌面风洞体验
+                </span>
+            </p>
+            
+            <!-- 按钮组 -->
+            <div class="flex flex-col md:flex-row gap-6 hero-text-slide">
+                <!-- 了解更多按钮 -->
+                <a href="#product" class="px-8 py-3 rounded-lg border-2 border-white text-white font-semibold text-lg hover:bg-white hover:text-black transition-all duration-300 transform hover:scale-105 text-center">
+                    <span id="hero-btn-demo">了解更多</span>
+                </a>
+                
+                <!-- 立即购买按钮 -->
+                <a href="#purchase" class="px-8 py-3 rounded-lg bg-gradient-to-r from-[#4A9FB5] to-[#00C2FF] text-white font-semibold text-lg hover:shadow-2xl hover:shadow-[#4A9FB5]/50 transition-all duration-300 transform hover:scale-105 text-center">
+                    <span id="hero-btn-buy">立即购买</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 产品介绍 - 四张全屏图片网格 -->
+    <section id="product" class="w-full bg-black py-12 md:py-20">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-0 w-full">
+            <!-- 产品特性1 -->
+            <div class="relative w-full h-72 sm:h-96 md:h-[600px] lg:h-[700px] overflow-hidden group bg-black flex items-center justify-center">
+                <img src="./1.png" alt="激发科学探索兴趣" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300">
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-4 sm:p-6 md:p-8">
+                    <h3 id="product-card1-title" class="text-lg sm:text-xl md:text-2xl font-bold text-white mb-1 sm:mb-2">激发科学探索兴趣</h3>
+                    <p id="product-card1-desc" class="text-[#4A9FB5]/90 text-xs sm:text-sm leading-relaxed">可视化气流实验帮助用户理解流体力学原理，培养科学思维与创新能力。</p>
+                </div>
+            </div>
+            <!-- 产品特性2 -->
+            <div class="relative w-full h-72 sm:h-96 md:h-[600px] lg:h-[700px] overflow-hidden group bg-black flex items-center justify-center">
+                <img src="./产品.jpg" alt="桌面风洞实验平台" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300 brightness-130 contrast-115">
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-4 sm:p-6 md:p-8">
+                    <h3 id="product-card2-title" class="text-lg sm:text-xl md:text-2xl font-bold text-white mb-1 sm:mb-2">桌面风洞实验平台</h3>
+                    <p id="product-card2-desc" class="text-[#4A9FB5]/90 text-xs sm:text-sm leading-relaxed">风速0-340km/h范围可调，多种色彩模式可供选择，感受风的魅力。</p>
+                </div>
+            </div>
+            <!-- 产品特性3 -->
+            <div class="relative w-full h-72 sm:h-96 md:h-[600px] lg:h-[700px] overflow-hidden group bg-black flex items-center justify-center">
+                <img src="./APP.png" alt="智能交互体验" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300">
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-4 sm:p-6 md:p-8">
+                    <h3 id="product-card3-title" class="text-lg sm:text-xl md:text-2xl font-bold text-white mb-1 sm:mb-2">智能交互体验</h3>
+                    <p id="product-card3-desc" class="text-[#4A9FB5]/90 text-xs sm:text-sm leading-relaxed">专属APP操控，多种模式探索，让学习更有趣。</p>
+                </div>
+            </div>
+            <!-- 产品特性4 -->
+            <div class="relative w-full h-72 sm:h-96 md:h-[600px] lg:h-[700px] overflow-hidden group bg-black flex items-center justify-center">
+                <img src="./产品特性.png" alt="环保节能设计" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300 brightness-150 contrast-125">
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-4 sm:p-6 md:p-8">
+                    <h3 id="product-card4-title" class="text-lg sm:text-xl md:text-2xl font-bold text-white mb-1 sm:mb-2">环保节能设计</h3>
+                    <p id="product-card4-desc" class="text-[#4A9FB5]/90 text-xs sm:text-sm leading-relaxed">采用雾化器与纯净水作为可视化介质，绿色环保，符合可持续发展理念。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    
+
+    <!-- 产品展示 - 视频短片轮播 -->
+    <section id="gallery" class="w-full bg-black py-12 md:py-20">
+        <div class="relative w-full h-auto md:h-screen flex flex-col md:flex-row items-center justify-center overflow-hidden bg-black px-4 md:px-0">
+            <!-- 左侧视频缩略图 - 隐藏在移动端 -->
+            <div class="hidden md:block absolute left-4 top-1/2 -translate-y-1/2 z-20">
+                <div class="relative w-32 aspect-video rounded-lg overflow-hidden shadow-lg bg-gray-900 group cursor-pointer border border-gray-700">
+                    <video id="gallery-left-video" muted class="w-full h-full object-cover">
+                        <source src="./产品效果演示.mp4" type="video/mp4">
+                    </video>
+                    <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
+                        <i class="fa fa-play text-white text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中间超大视频轮播 -->
+            <div class="relative w-full md:w-4/5 h-64 sm:h-80 md:h-5/6 z-10 flex items-center justify-center">
+                <div class="relative w-full h-full rounded-lg md:rounded-2xl overflow-hidden shadow-lg md:shadow-2xl bg-black">
+                    <video id="gallery-center-video" autoplay muted loop playsinline class="w-full h-full object-cover">
+                        <source src="./产品效果演示.mp4" type="video/mp4">
+                        您的浏览器不支持视频播放。
+                    </video>
+                </div>
+            </div>
+
+            <!-- 右侧视频缩略图 - 隐藏在移动端 -->
+            <div class="hidden md:block absolute right-4 top-1/2 -translate-y-1/2 z-20">
+                <div class="relative w-32 aspect-video rounded-lg overflow-hidden shadow-lg bg-gray-900 group cursor-pointer border border-gray-700">
+                    <video id="gallery-right-video" muted class="w-full h-full object-cover">
+                        <source src="./产品效果演示.mp4" type="video/mp4">
+                    </video>
+                    <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
+                        <i class="fa fa-play text-white text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 导航箭头 -->
+            <button id="gallery-prev" class="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 z-30 w-8 md:w-12 h-8 md:h-12 rounded-full bg-white/20 hover:bg-white/40 text-white transition-all backdrop-blur-sm flex items-center justify-center">
+                <i class="fa fa-chevron-left text-lg md:text-xl"></i>
+            </button>
+            <button id="gallery-next" class="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 z-30 w-8 md:w-12 h-8 md:h-12 rounded-full bg-white/20 hover:bg-white/40 text-white transition-all backdrop-blur-sm flex items-center justify-center">
+                <i class="fa fa-chevron-right text-lg md:text-xl"></i>
+            </button>
+
+            <!-- 指示点 -->
+            <div class="absolute bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+                <div id="gallery-dot-0" class="w-2 h-2 rounded-full bg-white/60 cursor-pointer transition-all"></div>
+                <div id="gallery-dot-1" class="w-2 h-2 rounded-full bg-white/30 cursor-pointer transition-all"></div>
+                <div id="gallery-dot-2" class="w-2 h-2 rounded-full bg-white/30 cursor-pointer transition-all"></div>
+                <div id="gallery-dot-3" class="w-2 h-2 rounded-full bg-white/30 cursor-pointer transition-all"></div>
+                <div id="gallery-dot-4" class="w-2 h-2 rounded-full bg-white/30 cursor-pointer transition-all"></div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // 视频短片轮播逻辑
+        let galleryIndex = 0;
+        const galleryVideos = [
+            { left: './1.mp4', center: './产品效果演示.mp4', right: './2.mp4' },
+            { left: './2.mp4', center: './demo.mp4', right: './3.mp4' },
+            { left: './3.mp4', center: './1.mp4', right: './产品效果演示.mp4' },
+            { left: './产品效果演示.mp4', center: './2.mp4', right: './1.mp4' },
+            { left: './demo.mp4', center: './3.mp4', right: './demo.mp4' }
+        ];
+
+        function updateGallery(index) {
+            const leftVideo = document.getElementById('gallery-left-video');
+            const centerVideo = document.getElementById('gallery-center-video');
+            const rightVideo = document.getElementById('gallery-right-video');
+            
+            leftVideo.src = galleryVideos[index].left;
+            centerVideo.src = galleryVideos[index].center;
+            rightVideo.src = galleryVideos[index].right;
+
+            // 重新加载视频
+            leftVideo.load();
+            centerVideo.load();
+            rightVideo.load();
+            centerVideo.play();
+
+            // 更新指示点
+            document.querySelectorAll('[id^="gallery-dot-"]').forEach((dot, i) => {
+                if (i === index) {
+                    dot.classList.remove('bg-white/30');
+                    dot.classList.add('bg-white/60');
+                } else {
+                    dot.classList.remove('bg-white/60');
+                    dot.classList.add('bg-white/30');
+                }
+            });
+        }
+
+        document.getElementById('gallery-prev').addEventListener('click', () => {
+            galleryIndex = (galleryIndex - 1 + galleryVideos.length) % galleryVideos.length;
+            updateGallery(galleryIndex);
+        });
+
+        document.getElementById('gallery-next').addEventListener('click', () => {
+            galleryIndex = (galleryIndex + 1) % galleryVideos.length;
+            updateGallery(galleryIndex);
+        });
+
+        // 指示点点击
+        document.querySelectorAll('[id^="gallery-dot-"]').forEach((dot, i) => {
+            dot.addEventListener('click', () => {
+                galleryIndex = i;
+                updateGallery(galleryIndex);
+            });
+        });
+
+        // 左右侧视频点击切换
+        document.getElementById('gallery-left-video').parentElement.addEventListener('click', () => {
+            galleryIndex = (galleryIndex - 1 + galleryVideos.length) % galleryVideos.length;
+            updateGallery(galleryIndex);
+        });
+
+        document.getElementById('gallery-right-video').parentElement.addEventListener('click', () => {
+            galleryIndex = (galleryIndex + 1) % galleryVideos.length;
+            updateGallery(galleryIndex);
+        });
+
+        // 页面加载时初始化
+        window.addEventListener('load', () => {
+            updateGallery(0);
+        });
+
+        // 如果页面已加载，立即初始化
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                updateGallery(0);
+            });
+        } else {
+            updateGallery(0);
+        }
+    </script>
+
+    <!-- 使用教程 -->
+    <section id="usage" class="py-12 md:py-20 bg-black">
+        <div class="container mx-auto px-4">
+            <!-- 轮播图 + 右侧文字说明 -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-start lg:items-center">
+                <!-- 左侧轮播图 -->
+                <div class="lg:col-span-2 space-y-4 md:space-y-6 relative w-full">
+                    <!-- 大图轮播 -->
+                    <div class="relative overflow-hidden rounded-lg md:rounded-2xl shadow-lg md:shadow-xl group">
+                        <img id="carousel-main" src="./产看更多5.jpg" alt="气流可视化" class="w-full h-48 sm:h-64 md:h-80 object-cover group-hover:scale-105 transition-transform duration-300">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-4 md:p-6">
+                            <div>
+                                <h3 id="carousel-main-title" class="text-white text-base md:text-xl font-bold">气流可视化</h3>
+                                <p id="carousel-main-desc" class="text-white/80 text-xs md:text-sm">实时观察汽车周围气流运动规律</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 小图轮播 -->
+                    <div class="grid grid-cols-2 gap-3 md:gap-6">
+                        <div class="relative overflow-hidden rounded-lg md:rounded-2xl shadow-md md:shadow-lg group cursor-pointer" id="carousel-left">
+                            <img id="carousel-left-img" src="./查看更多.jpg" alt="教学演示" class="w-full h-40 sm:h-48 md:h-60 object-cover group-hover:scale-105 transition-transform duration-300">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-3 md:p-4">
+                                <div>
+                                    <h3 id="carousel-left-title" class="text-white text-sm md:text-lg font-bold">教学演示</h3>
+                                    <p id="carousel-left-desc" class="text-white/80 text-xs">激发学生科学探索兴趣</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="relative overflow-hidden rounded-lg md:rounded-2xl shadow-md md:shadow-lg group cursor-pointer" id="carousel-right">
+                            <img id="carousel-right-img" src="./查看更多1.jpg" alt="科研实验" class="w-full h-40 sm:h-48 md:h-60 object-cover group-hover:scale-105 transition-transform duration-300">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-3 md:p-4">
+                                <div>
+                                    <h3 id="carousel-right-title" class="text-white text-sm md:text-lg font-bold">科研实验</h3>
+                                    <p id="carousel-right-desc" class="text-white/80 text-xs">流体力学研究与数据采集</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 导航箭头 -->
+                    <div class="flex justify-between items-center mt-4">
+                        <button id="carousel-prev" class="w-8 md:w-10 h-8 md:h-10 rounded-full bg-white/20 hover:bg-white/40 text-white transition-all flex items-center justify-center">
+                            <i class="fa fa-chevron-left text-sm md:text-lg"></i>
+                        </button>
+                        <div id="carousel-dots" class="flex gap-2">
+                            <!-- 指示点会通过JS生成 -->
+                        </div>
+                        <button id="carousel-next" class="w-8 md:w-10 h-8 md:h-10 rounded-full bg-white/20 hover:bg-white/40 text-white transition-all flex items-center justify-center">
+                            <i class="fa fa-chevron-right text-sm md:text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 右侧文字说明 -->
+                <div class="lg:col-span-1 flex flex-col justify-start lg:justify-center w-full">
+                    <h3 id="usage-title" class="text-2xl md:text-4xl font-bold bg-gradient-to-r from-[#4A9FB5] via-[#00C2FF] to-white bg-clip-text text-transparent mb-4 md:mb-6 leading-tight">多场景应用</h3>
+                    <p id="usage-desc" class="text-[#4A9FB5]/90 text-sm md:text-lg leading-relaxed mb-6 md:mb-10">RindWind T1桌面风洞适用于教育教学、科学研究和娱乐探索等多个领域，帮助用户深入理解流体力学原理，激发创新思维。</p>
+                    <a href="#" class="inline-flex items-center text-[#00C2FF] hover:text-white transition-colors font-semibold text-sm md:text-lg w-fit">
+                        <span id="usage-more">查看更多</span> <i class="fa fa-arrow-right ml-2"></i>
+                    </a>
+                </div>
+            </div>
+
+            <script>
+                // 使用教程轮播逻辑
+                let carouselIndex = 0;
+                const carouselImages = [
+                    { main: './产看更多5.jpg', left: './查看更多.jpg', right: './查看更多1.jpg', mainTitle: '气流可视化', mainDesc: '实时观察汽车周围气流运动规律', leftTitle: '教学演示', leftDesc: '激发学生科学探索兴趣', rightTitle: '科研实验', rightDesc: '流体力学研究与数据采集' },
+                    { main: './查看更多2.jpg', left: './查看更多3.jpg', right: './查看更多6.jpg', mainTitle: '产品展示', mainDesc: '精致工艺与高端设计', leftTitle: '应用场景', leftDesc: '多领域创新应用', rightTitle: '用户体验', rightDesc: '简单易用的操作界面' },
+                    { main: './查看更多7.jpg', left: './查看更多8.jpg', right: './查看更多9.jpg', mainTitle: '实验数据', mainDesc: '精准采集与实时分析', leftTitle: '科技创新', leftDesc: '前沿流体力学技术', rightTitle: '教育价值', rightDesc: '培养科学思维能力' },
+                    { main: './查看更多10.jpg', left: './查看更多11.jpg', right: './查看更多12.jpg', mainTitle: '产品特性', mainDesc: '高性能与可靠性', leftTitle: '品质保证', leftDesc: '严格的质量控制', rightTitle: '用户支持', rightDesc: '完善的技术服务' },
+                    { main: './查看更多13.jpg', left: './产看更多5.jpg', right: './查看更多.jpg', mainTitle: '创新体验', mainDesc: '重新定义风洞实验', leftTitle: '开启之旅', leftDesc: '从这里开始探索', rightTitle: '无限可能', rightDesc: '科学与创新的结合' }
+                ];
+
+                function updateCarousel(index) {
+                    const data = carouselImages[index];
+                    document.getElementById('carousel-main').src = data.main;
+                    document.getElementById('carousel-main-title').textContent = data.mainTitle;
+                    document.getElementById('carousel-main-desc').textContent = data.mainDesc;
+                    document.getElementById('carousel-left-img').src = data.left;
+                    document.getElementById('carousel-left-title').textContent = data.leftTitle;
+                    document.getElementById('carousel-left-desc').textContent = data.leftDesc;
+                    document.getElementById('carousel-right-img').src = data.right;
+                    document.getElementById('carousel-right-title').textContent = data.rightTitle;
+                    document.getElementById('carousel-right-desc').textContent = data.rightDesc;
+
+                    // 更新指示点
+                    document.querySelectorAll('.carousel-dot').forEach((dot, i) => {
+                        if (i === index) {
+                            dot.classList.add('bg-white');
+                            dot.classList.remove('bg-white/30');
+                        } else {
+                            dot.classList.remove('bg-white');
+                            dot.classList.add('bg-white/30');
+                        }
+                    });
+                }
+
+                // 初始化指示点
+                const dotsContainer = document.getElementById('carousel-dots');
+                carouselImages.forEach((_, i) => {
+                    const dot = document.createElement('div');
+                    dot.className = `carousel-dot w-2 h-2 rounded-full cursor-pointer transition-all ${i === 0 ? 'bg-white' : 'bg-white/30'}`;
+                    dot.addEventListener('click', () => {
+                        carouselIndex = i;
+                        updateCarousel(carouselIndex);
+                    });
+                    dotsContainer.appendChild(dot);
+                });
+
+                // 导航按钮
+                document.getElementById('carousel-prev').addEventListener('click', () => {
+                    carouselIndex = (carouselIndex - 1 + carouselImages.length) % carouselImages.length;
+                    updateCarousel(carouselIndex);
+                });
+
+                document.getElementById('carousel-next').addEventListener('click', () => {
+                    carouselIndex = (carouselIndex + 1) % carouselImages.length;
+                    updateCarousel(carouselIndex);
+                });
+
+                // 小图点击切换
+                document.getElementById('carousel-left').addEventListener('click', () => {
+                    carouselIndex = (carouselIndex - 1 + carouselImages.length) % carouselImages.length;
+                    updateCarousel(carouselIndex);
+                });
+
+                document.getElementById('carousel-right').addEventListener('click', () => {
+                    carouselIndex = (carouselIndex + 1) % carouselImages.length;
+                    updateCarousel(carouselIndex);
+                });
+            </script>
+        </div>
+    </section>
+
+
+    <!-- 购买信息 -->
+    <section id="purchase" class="relative min-h-screen flex flex-col items-center justify-center bg-black text-white overflow-hidden py-20">
+      <div class="container mx-auto px-4 relative z-10">
+        <!-- 顶部文案说明 -->
+        <div class="mb-12 lg:mb-16">
+          <h3 id="purchase-top-title" class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-6 lg:mb-8 leading-tight bg-gradient-to-r from-[#4A9FB5] via-[#00C2FF] to-white bg-clip-text text-transparent">RindWind T1 模型风洞——为模型爱好者与青少年设计的科教玩具</h3>
+          <div class="space-y-3 sm:space-y-4 max-w-4xl">
+            <p id="purchase-top-desc1" class="text-sm sm:text-base md:text-lg leading-relaxed bg-gradient-to-r from-[#4A9FB5] via-[#00C2FF] to-white bg-clip-text text-transparent">使用超声波精密陶瓷振动技术，击碎水珠产生烟雾，让空气 "显形"，模拟真实的风洞效果。</p>
+            <p id="purchase-top-desc2" class="text-sm sm:text-base md:text-lg leading-relaxed bg-gradient-to-r from-[#4A9FB5] via-[#00C2FF] to-white bg-clip-text text-transparent">无需耗材，保护健康，让您更加自由探索自然世界</p>
+          </div>
+        </div>
+
+        <!-- 主要内容网格 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-32 items-start lg:items-stretch">
+          <!-- 左侧产品展示网格 -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 w-full">
+            <!-- 产品1 -->
+            <div class="flex flex-col">
+              <div class="relative group overflow-hidden rounded-xl h-40 sm:h-48 flex items-center justify-center bg-black mb-3 sm:mb-4">
+                <img src="./矩形 13.png" alt="优质美感的设计结构" class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300">
+              </div>
+              <div class="min-h-12">
+                <h4 id="purchase-card1-title" class="text-white font-bold text-xs sm:text-sm leading-tight">优质美观的设计线条</h4>
+                <p id="purchase-card1-desc" class="text-white/70 text-xs mt-1">极简风格，高要求</p>
+              </div>
+            </div>
+
+            <!-- 产品2 -->
+            <div class="flex flex-col">
+              <div class="relative group overflow-hidden rounded-xl h-40 sm:h-48 flex items-center justify-center bg-black mb-3 sm:mb-4">
+                <img src="./矩形 14.png" alt="高度拟真的气流效果" class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300">
+              </div>
+              <div class="min-h-12">
+                <h4 id="purchase-card2-title" class="text-white font-bold text-xs sm:text-sm leading-tight">高度拟真的气流效果</h4>
+                <p id="purchase-card2-desc" class="text-white/70 text-xs mt-1">保护健康，也不放弃细节</p>
+              </div>
+            </div>
+
+            <!-- 产品3 -->
+            <div class="flex flex-col">
+              <div class="relative group overflow-hidden rounded-xl h-40 sm:h-48 flex items-center justify-center bg-black mb-3 sm:mb-4">
+                <img src="./矩形 15.png" alt="多种模式自由组合" class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300">
+              </div>
+              <div class="min-h-12">
+                <h4 id="purchase-card3-title" class="text-white font-bold text-xs sm:text-sm leading-tight">多彩颜色自由选择</h4>
+                <p id="purchase-card3-desc" class="text-white/70 text-xs mt-1">出片，更要照亮情绪</p>
+              </div>
+            </div>
+
+            <!-- 产品4 -->
+            <div class="flex flex-col">
+              <div class="relative group overflow-hidden rounded-xl h-40 sm:h-48 flex items-center justify-center bg-black mb-3 sm:mb-4">
+                <img src="./矩形 16.png" alt="App智能控制展示" class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300">
+              </div>
+              <div class="min-h-12">
+                <h4 id="purchase-card4-title" class="text-white font-bold text-xs sm:text-sm leading-tight">App智能控制展示</h4>
+                <p id="purchase-card4-desc" class="text-white/70 text-xs mt-1">专业、智能、有内涵</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右侧文案 -->
+          <div class="flex flex-col justify-start pt-6 lg:pt-8 lg:pl-12 w-full">
+            <span id="purchase-brand" class="text-[#4A9FB5] text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 lg:mb-6 block">RindWind T1</span>
+            <h2 id="purchase-title" class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 lg:mb-8 leading-tight bg-gradient-to-r from-[#4A9FB5] via-[#00C2FF] to-white bg-clip-text text-transparent">开启你的流体力学之旅</h2>
+            <p id="purchase-desc" class="text-white/80 text-sm sm:text-base mb-8 lg:mb-12 leading-relaxed">选择RindWind T1桌面风洞，体验科学与创新的乐趣。</p>
+            
+            <!-- 产品特性列表 -->
+            <div class="space-y-3 sm:space-y-4 mb-8 lg:mb-12">
+              <div class="flex items-start space-x-3">
+                <div class="w-1 h-1 bg-[#00C2FF] rounded-full mt-2 flex-shrink-0"></div>
+                <p id="purchase-feature1" class="text-white/75 text-xs sm:text-sm">超声波精密陶瓷振动技术</p>
+              </div>
+              <div class="flex items-start space-x-3">
+                <div class="w-1 h-1 bg-[#00C2FF] rounded-full mt-2 flex-shrink-0"></div>
+                <p id="purchase-feature2" class="text-white/75 text-xs sm:text-sm">无需使用昂贵烟油耗材，节约环保健康</p>
+              </div>
+              <div class="flex items-start space-x-3">
+                <div class="w-1 h-1 bg-[#00C2FF] rounded-full mt-2 flex-shrink-0"></div>
+                <p id="purchase-feature3" class="text-white/75 text-xs sm:text-sm">APP智能控制与多种模式娱乐</p>
+              </div>
+            </div>
+            
+            <a id="purchase-btn-buy" href="#" class="inline-block bg-gradient-to-r from-[#4A9FB5] to-[#00C2FF] text-white px-6 sm:px-8 lg:px-10 py-2.5 sm:py-3 rounded-lg font-semibold text-sm sm:text-base shadow-lg hover:shadow-2xl hover:shadow-[#4A9FB5]/50 transition-all duration-300 transform hover:scale-105 w-fit">立即购买</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white pt-16 pb-8">
+        <div class="container mx-auto px-4">
+            <div class="grid md:grid-cols-4 gap-12 mb-12">
+                <div>
+                    <div class="flex items-center space-x-2 mb-6">
+                        <div class="w-10 h-10 bg-black rounded-lg flex items-center justify-center border border-white/10">
+                            <!-- SVG LOGO START -->
+                            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="2" y="2" width="24" height="24" stroke="white" stroke-width="2"/>
+                                <line x1="3" y1="25" x2="25" y2="3" stroke="white" stroke-width="2"/>
+                                <circle cx="19" cy="19" r="7" stroke="white" stroke-width="2"/>
+                            </svg>
+                            <!-- SVG LOGO END -->
+                        </div>
+                        <span class="text-xl font-bold" id="footer-brand">驭风少年</span>
+                    </div>
+                    <p class="text-gray-400 mb-6" id="footer-desc">专注于桌面科学实验设备的研发与生产，让科学探索变得简单有趣。</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="w-10 h-10 bg-white/10 hover:bg-primary rounded-full flex items-center justify-center transition-colors">
+                            <i class="fa fa-weibo"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-white/10 hover:bg-primary rounded-full flex items-center justify-center transition-colors">
+                            <i class="fa fa-wechat"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-white/10 hover:bg-primary rounded-full flex items-center justify-center transition-colors">
+                            <i class="fa fa-youtube-play"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-white/10 hover:bg-primary rounded-full flex items-center justify-center transition-colors">
+                            <i class="fa fa-instagram"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 id="footer-quicklinks-title" class="text-lg font-semibold mb-6">快速链接</h4>
+                    <ul>
+                      <li><a id="footer-quick-home" href="#home" class="text-gray-400 hover:text-white transition-colors">首页</a></li>
+                      <li><a id="footer-quick-product" href="#product" class="text-gray-400 hover:text-white transition-colors">产品介绍</a></li>
+                      <li><a id="footer-quick-features" href="#features" class="text-gray-400 hover:text-white transition-colors">产品特性</a></li>
+                      <li><a id="footer-quick-gallery" href="#gallery" class="text-gray-400 hover:text-white transition-colors">产品展示</a></li>
+                      <li><a id="footer-quick-usage" href="#usage" class="text-gray-400 hover:text-white transition-colors">使用教程</a></li>
+                      <li><a id="footer-quick-explore" href="#explore" class="text-gray-400 hover:text-white transition-colors">探索</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 id="footer-support-title" class="text-lg font-semibold mb-6">支持与服务</h4>
+                    <ul>
+                      <li><a id="footer-support-faq" href="#" class="text-gray-400 hover:text-white transition-colors">常见问题</a></li>
+                      <li><a id="footer-support-tutorial" href="#" class="text-gray-400 hover:text-white transition-colors">使用教程</a></li>
+                      <li><a id="footer-support-download" href="#" class="text-gray-400 hover:text-white transition-colors">下载中心</a></li>
+                      <li><a id="footer-support-service" href="#" class="text-gray-400 hover:text-white transition-colors">售后服务</a></li>
+                      <li><a id="footer-support-contact" href="#" class="text-gray-400 hover:text-white transition-colors">联系我们</a></li>
+                      <li><a id="footer-support-community" href="#" class="text-gray-400 hover:text-white transition-colors">社区论坛</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 id="footer-subscribe-title" class="text-lg font-semibold mb-6">订阅我们</h4>
+                    <p id="footer-subscribe-desc" class="text-gray-400 mb-4">订阅我们的资讯，获取最新产品动态与科学内容。</p>
+                    <div class="flex w-full mb-4">
+                      <input id="footer-subscribe-input" type="email" placeholder="请输入您的邮箱" class="bg-white/10 border border-white/20 rounded-l-lg px-4 py-3 w-full focus:outline-none focus:border-primary">
+                      <button id="footer-subscribe-btn" type="submit" class="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-r-lg transition-colors"><span>订阅</span></button>
+                    </div>
+                    <p id="footer-privacy-tip" class="text-gray-500 text-sm">我们尊重您的隐私，不会将信息泄露给第三方。</p>
+                    <p id="footer-copyright" class="text-gray-500 text-sm mb-4 md:mb-0">© 2025 驭风少年科技有限公司 保留所有权利。</p>
+                    <a id="footer-link-privacy" href="#" class="text-gray-500 hover:text-white text-sm transition-colors">隐私政策</a>
+                    <a id="footer-link-terms" href="#" class="text-gray-500 hover:text-white text-sm transition-colors">使用条款</a>
+                    <a id="footer-link-cookie" href="#" class="text-gray-500 hover:text-white text-sm transition-colors">Cookie政策</a>
+                    <a id="footer-link-map" href="#" class="text-gray-500 hover:text-white text-sm transition-colors">网站地图</a>
+                </div>
+            </div>
+            
+            <div class="border-t border-white/10 pt-8">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <p class="text-gray-500 text-sm mb-4 md:mb-0">© 2025 驭风少年科技有限公司 保留所有权利。</p>
+                    <div class="flex space-x-6">
+                        <a href="#" class="text-gray-500 hover:text-white text-sm transition-colors" id="footer-link-privacy">隐私政策</a>
+                        <a href="#" class="text-gray-500 hover:text-white text-sm transition-colors" id="footer-link-terms">使用条款</a>
+                        <a href="#" class="text-gray-500 hover:text-white text-sm transition-colors" id="footer-link-cookie">Cookie政策</a>
+                        <a href="#" class="text-gray-500 hover:text-white text-sm transition-colors" id="footer-link-map">网站地图</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 返回顶部按钮 -->
+    <button id="back-to-top" class="fixed bottom-8 right-8 bg-primary hover:bg-primary/90 text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg transform transition-transform duration-300 opacity-0 translate-y-10">
+        <i class="fa fa-chevron-up"></i>
+    </button>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // 全局多语言字典和当前语言
+        window.langDict = {
+          zh: {
+            'lang-switch': 'English',
+            'hero-title-main': '驭风少年',
+            'hero-title-sub': '重新定义桌面风洞体验',
+            'hero-desc': '驭风少年风洞将专业流体力学设备微型化，让科学探索触手可及。无论你是学生、教师还是航空爱好者，都能直观体验空气动力学的奇妙世界。',
+            'hero-btn-buy': '立即购买',
+            'hero-btn-demo': '观看演示',
+            'demo-title': '驭风少年',
+            'demo-btn': '立即购买',
+            'demo-footer': '版权所有 © 驭风少年',
+            'product-title-tag': '创新与科技',
+            'product-title': '重新定义桌面风洞体验',
+            'product-desc': '驭风少年风洞将专业流体力学设备微型化，让科学探索触手可及。无论你是学生、教师还是航空爱好者，都能直观体验空气动力学的奇妙世界。',
+            'features-title-tag': '核心优势',
+            'features-title': '专业性能，桌面体验',
+            'features-desc': '我们的风洞模型集成多项创新技术，保证专业实验效果的同时，兼顾桌面便捷与安全。',
+            'gallery-title-tag': '产品展示',
+            'gallery-title': '多角度展示',
+            'gallery-desc': '从各个角度欣赏驭风少年桌面风洞的精致设计与工艺，体验科技与美学的完美结合。',
+            'usage-title-tag': '使用指南',
+            'usage-title': '几步开启探索之旅',
+            'usage-desc': '无论课堂演示还是自主研究，驭风少年风洞都易于上手，实验体验丰富。',
+            'purchase-brand': '驭风少年',
+            'purchase-title': '开启你的流体力学之旅',
+            'purchase-desc': '选择驭风少年桌面风洞，体验科学与创新的乐趣。所有产品均享受两年质保与终身技术支持。',
+            'purchase-btn-buy': '立即购买',
+            'faq-title': '常见问题解答',
+            'faq-desc': '我们整理了用户常见的问题，如有其他疑问请联系客服。',
+            'footer-quicklinks-title': '快速链接',
+            'footer-support-title': '支持与服务',
+            'footer-subscribe-title': '订阅我们',
+            'footer-subscribe-desc': '订阅我们的资讯，获取最新产品动态与科学内容。',
+            'footer-privacy-tip': '我们尊重您的隐私，不会将信息泄露给第三方。',
+            'footer-copyright': '© 2025 驭风少年科技有限公司 保留所有权利。',
+            'nav-home': '首页',
+            'nav-product': '产品介绍',
+            'nav-features': '产品特性',
+            'nav-gallery': '产品展示',
+            'nav-usage': '使用教程',
+            'nav-explore': '探索',
+            'product-card1-title': '激发科学探索兴趣',
+            'product-card1-desc': '可视化气流实验帮助用户理解流体力学原理，培养科学思维与创新能力。',
+            'product-card2-title': '高精度实验平台',
+            'product-card2-desc': '风速1-30m/s可调，精度高，配备多种模型与测量工具，满足多样化教学与科研需求。',
+            'product-card3-title': '智能交互体验',
+            'product-card3-desc': '专属APP实时显示风速与压力数据，支持实验记录与分享，让学习更有趣。',
+            'product-card4-title': '环保节能设计',
+            'product-card4-desc': '采用雾化器与纯净水作为可视化介质，绿色环保，符合可持续发展理念。',
+            'faq-q1': '这款风洞适合多大年龄段？',
+            'faq-a1': '我们的风洞模型适合8岁及以上的学生和科技爱好者。8-12岁儿童建议在家长或老师指导下使用。产品设计注重安全，采用圆角、高强度材料，并内置过载保护。',
+            'faq-q2': '风洞需要什么电源和使用环境？',
+            'faq-a2': '风洞采用100-240V标准交流电源，全球通用。建议在通风良好、温度0-40°C、湿度80%以下环境下使用。请将风洞放置于稳固桌面，四周预留30cm空间以便通风。',
+            'faq-q3': '如何添加烟油？',
+            'faq-a3': '我们的雾化器使用专用烟油，每瓶50ml，初次可用约2小时。烟油用尽可在官方商城购买补充。也可使用其他无毒无刺激的矿物油类烟油，但建议优先使用原装产品以保证性能与安全。',
+            'faq-q4': '可以自制测试模型吗？',
+            'faq-a4': '可以，我们鼓励用户自制测试模型。风洞测试段尺寸为150×150×300mm。可用3D打印、激光切割或手工制作。官方社区提供模板与教程，欢迎分享你的创意。',
+            'faq-q5': 'APP支持哪些功能？可以导出数据吗？',
+            'faq-a5': 'APP支持风速控制、实时数据展示、实验记录、数据分析与分享。可设置风速、记录实验时间、查看风速/压力曲线，支持导出CSV、Excel或图片。APP支持iOS 12.0+和Android 6.0+设备。',
+            'faq-q6': '有教育机构批量采购方案吗？',
+            'faq-a6': '有，我们为学校、培训机构、科研院所提供批量采购与教育优惠。10台及以上享8折，赠送培训与定制教学资源。还可提供完整实验室解决方案，包括设备、课程设计与师资培训。详情请联系销售。',
+            'nav-login-btn': '登录 / 注册',
+            'nav-buy-btn': '立即购买',
+            'features-card1-label': '风速稳定性',
+            'features-card2-label': '烟雾可视度',
+            'features-card3-label': '数据精度',
+            'features-card4-label': '安全等级',
+            'features-card5-label': '噪音水平',
+            'features-card6-label': '可扩展性',
+            'features-card1-title': '精确风速控制',
+            'features-card1-desc': '风速1-30m/s可调，精度±0.1m/s，适用于低速空气动力学到高速流体力学等多种实验。',
+            'features-card2-title': '气流可视化系统',
+            'features-card2-desc': '配备直流雾化器与LED照明，清晰展示气流形态，帮助用户直观理解空气动力学原理。',
+            'features-card3-title': '智能数据采集',
+            'features-card3-desc': '内置高精度压力传感器与风速计，实时采集数据，APP同步，支持数据导出与分析。',
+            'features-card4-title': '安全防护设计',
+            'features-card4-desc': '全封闭结构，高强度透明亚克力窗，内置过载与过热保护，操作更安全。',
+            'features-card5-title': '节能静音',
+            'features-card5-desc': '高效无刷电机，功耗仅60W，噪音低于50dB，不打扰你的工作与学习环境。',
+            'features-card6-title': '模块化设计',
+            'features-card6-desc': '模块化理念，便于组装与维护，高度可扩展，未来可升级更多功能。',
+            'tutorial-step1-title': '安装与准备',
+            'tutorial-step1-desc': '将风洞放置于稳固桌面，连接电源，安装测试模型，准备好雾化器。全程不到5分钟。',
+            'tutorial-step2-title': '连接与控制',
+            'tutorial-step2-desc': '通过蓝牙连接手机APP，选择实验模式并设置风速，或直接使用物理按键控制。',
+            'tutorial-step3-title': '观察与记录',
+            'tutorial-step3-desc': '启动雾化器，观察模型周围气流，APP实时记录风速与压力，也可拍照录像。',
+            'tutorial-step4-title': '分析与分享',
+            'tutorial-step4-desc': '使用APP内置数据分析工具生成图表与结论，成果可分享到社交媒体或学习社区。',
+            'footer-quicklinks-title': '快速链接',
+            'footer-support-title': '支持与服务',
+            'footer-quick-home': '首页',
+            'footer-quick-product': '产品介绍',
+            'footer-quick-features': '产品特性',
+            'footer-quick-gallery': '产品展示',
+            'footer-quick-usage': '使用教程',
+            'footer-quick-explore': '探索',
+            'footer-support-faq': '常见问题',
+            'footer-support-tutorial': '使用教程',
+            'footer-support-download': '下载中心',
+            'footer-support-service': '售后服务',
+            'footer-support-contact': '联系我们',
+            'footer-support-community': '社区论坛',
+            'nav-software-text': '软件',
+            'nav-app': 'APP下载',
+            'nav-tool': '数据分析工具',
+            'nav-firmware': '固件升级',
+            'hero-slide1-tag': '创新与科技',
+            'hero-slide1-title': '驭风少年',
+            'hero-slide1-sub': '重新定义桌面风洞体验',
+            'hero-slide1-desc': '驭风少年风洞将专业流体力学设备微型化，让科学探索触手可及。无论你是学生、教师还是航空爱好者，都能直观体验空气动力学的奇妙世界。',
+            'hero-slide1-btn1': '立即购买',
+            'hero-slide1-btn2': '观看演示',
+            'hero-slide2-tag': '智能交互',
+            'hero-slide2-title': 'APP实时数据',
+            'hero-slide2-sub': '智能分析更高效',
+            'hero-slide2-desc': '专属APP实时显示风速与压力数据，支持实验记录与分享，让学习更有趣更高效。',
+            'hero-slide2-btn1': '下载APP',
+            'hero-slide2-btn2': '了解更多',
+            'hero-slide3-tag': '实验演示',
+            'hero-slide3-title': '视频直观体验',
+            'hero-slide3-sub': '探索气流奥秘',
+            'hero-slide3-desc': '通过演示视频，直观感受风洞实验的全过程，激发科学兴趣。',
+            'hero-slide1-title-main': '驭风少年',
+            'hero-slide2-title-main': 'APP实时数据',
+            'hero-slide3-title-main': '视频直观体验',
+            'hero-slide1-btn1-text': '立即购买',
+            'hero-slide1-btn2-text': '观看演示',
+            'hero-slide2-btn1-text': '下载APP',
+            'hero-slide2-btn2-text': '了解更多',
+            'hero-slide3-btn1-text': '观看视频',
+            'explore-about-title': '关于驭风',
+            'explore-about-desc': '了解品牌故事与使命',
+            'explore-contact-title': '联系我们',
+            'explore-contact-desc': '获取售前售后支持',
+            'explore-join-title': '加入我们',
+            'explore-join-desc': '成为团队一员，共创未来',
+            'explore-events-title': '用户活动',
+            'explore-events-desc': '参与精彩社区与线下活动',
+            'explore-blog-title': 'Blog',
+            'explore-blog-desc': '阅读最新动态与科普内容',
+            'explore-more-title': '探索更多',
+            'explore-more-desc': '发现更多精彩内容',
+            'footer-brand': '驭风少年',
+            'footer-desc': '专注于桌面科学实验设备的研发与生产，让科学探索变得简单有趣。',
+            'footer-subscribe-input': '请输入您的邮箱',
+            'footer-subscribe-btn': '订阅',
+            'footer-link-privacy': '隐私政策',
+            'footer-link-terms': '使用条款',
+            'footer-link-cookie': 'Cookie政策',
+            'footer-link-map': '网站地图',
+            'product-card1-title': '激发科学探索兴趣',
+            'product-card1-desc': '可视化气流实验帮助用户理解流体力学原理，培养科学思维与创新能力。',
+            'product-card2-title': '桌面风洞实验平台',
+            'product-card2-desc': '风速0-340km/h范围可调，多种色彩模式可供选择，感受风的魅力。',
+            'product-card3-title': '智能交互体验',
+            'product-card3-desc': '专属APP操控，多种模式探索，让学习更有趣。',
+            'product-card4-title': '环保节能设计',
+            'product-card4-desc': '采用雾化器与纯净水作为可视化介质，绿色环保，符合可持续发展理念。',
+            'purchase-top-title': 'RindWind T1 模型风洞——为模型爱好者与青少年设计的科教玩具',
+            'purchase-top-desc1': '使用超声波精密陶瓷振动技术，击碎水珠产生烟雾，让空气 "显形"，模拟真实的风洞效果。',
+            'purchase-top-desc2': '无需耗材，保护健康，让您更加自由探索自然世界',
+            'purchase-feature1': '超声波精密陶瓷振动技术',
+            'purchase-feature2': '无需使用昂贵烟油耗材，节约环保健康',
+            'purchase-feature3': 'APP智能控制与多种模式娱乐',
+            'carousel-main-title': '气流可视化',
+            'carousel-main-desc': '实时观察汽车周围气流运动规律',
+            'carousel-left-title': '教学演示',
+            'carousel-left-desc': '激发学生科学探索兴趣',
+            'carousel-right-title': '科研实验',
+            'carousel-right-desc': '流体力学研究与数据采集',
+            'usage-title': '多场景应用',
+            'usage-desc': 'RindWind T1桌面风洞适用于教育教学、科学研究和娱乐探索等多个领域，帮助用户深入理解流体力学原理，激发创新思维。',
+            'usage-more': '查看更多',
+            'hero-title-main': '眼见为实 一洞知风',
+            'hero-title-sub': '重新定义桌面风洞体验',
+            'hero-btn-demo': '了解更多',
+            'hero-btn-buy': '立即购买',
+            'purchase-card1-title': '优质美观的设计线条',
+            'purchase-card1-desc': '极简风格，高要求',
+            'purchase-card2-title': '高度拟真的气流效果',
+            'purchase-card2-desc': '保护健康，也不放弃细节',
+            'purchase-card3-title': '多彩颜色自由选择',
+            'purchase-card3-desc': '出片，更要照亮情绪',
+            'purchase-card4-title': 'App智能控制展示',
+            'purchase-card4-desc': '专业、智能、有内涵',
+          },
+          en: {
+            'lang-switch': '中文',
+            'hero-title-main': 'Ride Wind',
+            'hero-title-sub': 'Redefining Desktop Wind Tunnel Experience',
+            'hero-desc': 'The Ride Wind wind tunnel miniaturizes professional fluid dynamics equipment, making scientific exploration accessible. Whether you are a student, teacher, or aviation enthusiast, you can intuitively experience the wonders of aerodynamics.',
+            'hero-btn-buy': 'Buy Now',
+            'hero-btn-demo': 'Watch Demo',
+            'demo-title': 'Ride Wind',
+            'demo-btn': 'Buy Now',
+            'demo-footer': 'Copyright © Ride Wind',
+            'product-title-tag': 'Innovation & Technology',
+            'product-title': 'Redefining Desktop Wind Tunnel Experience',
+            'product-desc': 'The Ride Wind wind tunnel miniaturizes professional fluid dynamics equipment, making scientific exploration accessible. Whether you are a student, teacher, or aviation enthusiast, you can intuitively experience the wonders of aerodynamics.',
+            'features-title-tag': 'Core Advantages',
+            'features-title': 'Professional Performance, Desktop Experience',
+            'features-desc': 'Our wind tunnel model integrates multiple innovative technologies, ensuring professional experimental results while maintaining desktop convenience and safety.',
+            'gallery-title-tag': 'Product Gallery',
+            'gallery-title': 'Multi-angle Showcase',
+            'gallery-desc': 'Appreciate the exquisite design and craftsmanship of the Ride Wind desktop wind tunnel from every angle, experiencing the perfect blend of technology and aesthetics.',
+            'usage-title-tag': 'User Guide',
+            'usage-title': 'Start Exploring in a Few Steps',
+            'usage-desc': 'Whether for classroom demonstrations or independent research, our wind tunnel model is easy to use and offers a rich experimental experience.',
+            'purchase-brand': 'Ride Wind',
+            'purchase-title': 'Start Your Fluid Mechanics Journey',
+            'purchase-desc': 'Choose the Ride Wind desktop wind tunnel and experience the joy of science and innovation. All products come with a two-year warranty and lifetime technical support.',
+            'purchase-btn-buy': 'Buy Now',
+            'faq-title': 'FAQ',
+            'faq-desc': 'We have compiled common user questions. If you have other questions, please contact customer service.',
+            'footer-quicklinks-title': 'Quick Links',
+            'footer-support-title': 'Support & Service',
+            'footer-subscribe-title': 'Subscribe',
+            'footer-subscribe-desc': 'Subscribe to our newsletter for the latest product news and science content.',
+            'footer-privacy-tip': 'We respect your privacy and will not disclose your information to third parties.',
+            'footer-copyright': '© 2025 Ride Wind Technology Co., Ltd. All rights reserved.',
+            'nav-home': 'Home',
+            'nav-product': 'Product',
+            'nav-features': 'Features',
+            'nav-gallery': 'Gallery',
+            'nav-usage': 'Tutorial',
+            'nav-explore': 'Explore',
+            'product-card1-title': 'Inspire Scientific Exploration',
+            'product-card1-desc': 'Visual airflow experiments help users understand fluid mechanics and foster scientific thinking and innovation.',
+            'product-card2-title': 'High-Precision Platform',
+            'product-card2-desc': 'Wind speed adjustable from 1-30m/s, high accuracy, equipped with various models and measuring tools for diverse teaching and research needs.',
+            'product-card3-title': 'Smart Interactive Experience',
+            'product-card3-desc': 'Exclusive APP displays wind speed and pressure data in real time, supports experiment recording and sharing, making learning more fun.',
+            'product-card4-title': 'Eco-Friendly Design',
+            'product-card4-desc': 'Uses atomizer and purified water as visualization medium, green and eco-friendly, in line with sustainable development.',
+            'faq-q1': 'What age group is this wind tunnel suitable for?',
+            'faq-a1': 'Our wind tunnel model is suitable for students and technology enthusiasts aged 8 and above. For children aged 8-12, we recommend using it under the guidance of parents or teachers. The product is designed with safety in mind, with rounded corners, high-strength materials, and built-in overload protection.',
+            'faq-q2': 'What power supply and environment does the wind tunnel require?',
+            'faq-a2': 'The wind tunnel uses a 100-240V standard AC power supply, suitable worldwide. It is recommended to use in a well-ventilated environment, temperature 0-40°C, humidity below 80%. Place the wind tunnel on a stable desk and leave 30cm space around for ventilation.',
+            'faq-q3': 'How to add smoke oil?',
+            'faq-a3': 'Our atomizer uses special smoke oil, 50ml per bottle, about 2 hours for first use. When used up, you can buy more from the official store. Other non-toxic mineral oil smoke oils can also be used, but we recommend using the original product for best performance and safety.',
+            'faq-q4': 'Can I make my own test models?',
+            'faq-a4': 'Yes, we encourage users to make their own test models. The test section size is 150×150×300mm. You can use 3D printing, laser cutting, or handcrafting. The official community provides templates and tutorials. Share your creativity with us!',
+            'faq-q5': 'What functions does the APP support? Can data be exported?',
+            'faq-a5': 'The APP supports wind speed control, real-time data display, experiment recording, data analysis and sharing. You can set wind speed, record experiment time, view wind speed/pressure curves, and export CSV, Excel, or images. The APP supports iOS 12.0+ and Android 6.0+ devices.',
+            'faq-q6': 'Is there a bulk purchase plan for educational institutions?',
+            'faq-a6': 'Yes, we offer bulk purchase and educational discounts for schools, training institutions, and research institutes. 10 units or more enjoy 20% off, with free training and customized teaching resources. We also provide complete lab solutions including equipment, curriculum design, and teacher training. Contact sales for details.',
+            'nav-login-btn': 'Login / Register',
+            'nav-buy-btn': 'Buy Now',
+            'features-card1-label': 'Wind Speed Stability',
+            'features-card2-label': 'Smoke Visibility',
+            'features-card3-label': 'Data Accuracy',
+            'features-card4-label': 'Safety Level',
+            'features-card5-label': 'Noise Level',
+            'features-card6-label': 'Expandable',
+            'features-card1-title': 'Precise Wind Speed Control',
+            'features-card1-desc': 'Wind speed adjustable from 1-30m/s, accuracy ±0.1m/s, suitable for various experiments from low-speed aerodynamics to high-speed fluid mechanics.',
+            'features-card2-title': 'Airflow Visualization System',
+            'features-card2-desc': 'Equipped with DC atomizer and LED lighting, clearly visualizes airflow patterns to help users intuitively understand aerodynamic principles.',
+            'features-card3-title': 'Intelligent Data Acquisition',
+            'features-card3-desc': 'Built-in high-precision pressure sensor and anemometer, real-time data collection, APP synchronization, supports data export and analysis.',
+            'features-card4-title': 'Safety Protection Design',
+            'features-card4-desc': 'Fully enclosed structure, high-strength transparent acrylic window, built-in overload and overheat protection for safe operation.',
+            'features-card5-title': 'Energy Saving & Quiet Operation',
+            'features-card5-desc': 'Efficient brushless motor, only 60W power consumption, noise below 50dB, does not disturb your work or study environment.',
+            'features-card6-title': 'Modular Design',
+            'features-card6-desc': 'Modular concept for easy assembly and maintenance, highly expandable, future upgrade kits available for more features.',
+            'tutorial-step1-title': 'Installation & Preparation',
+            'tutorial-step1-desc': 'Place the wind tunnel on a stable desk, connect the power, install the test model, and prepare the atomizer. The whole process takes less than 5 minutes.',
+            'tutorial-step2-title': 'Connection & Control',
+            'tutorial-step2-desc': 'Connect your phone to the APP via Bluetooth, select experiment mode and set wind speed, or use physical buttons for direct control.',
+            'tutorial-step3-title': 'Observation & Recording',
+            'tutorial-step3-desc': 'Start the atomizer, observe airflow around the model, record wind speed and pressure in real time with the APP, and take photos or videos.',
+            'tutorial-step4-title': 'Analysis & Sharing',
+            'tutorial-step4-desc': 'Use the built-in data analysis tools in the APP to generate charts and conclusions, and share results to social media or learning communities.',
+            'footer-quicklinks-title': 'Quick Links',
+            'footer-support-title': 'Support & Service',
+            'footer-quick-home': 'Home',
+            'footer-quick-product': 'Product',
+            'footer-quick-features': 'Features',
+            'footer-quick-gallery': 'Gallery',
+            'footer-quick-usage': 'Tutorial',
+            'footer-quick-explore': 'Explore',
+            'footer-support-faq': 'FAQ',
+            'footer-support-tutorial': 'Tutorial',
+            'footer-support-download': 'Download',
+            'footer-support-service': 'Service',
+            'footer-support-contact': 'Contact Us',
+            'footer-support-community': 'Community',
+            'nav-software-text': 'Software',
+            'nav-app': 'APP Download',
+            'nav-tool': 'Data Tool',
+            'nav-firmware': 'Firmware',
+            'hero-slide1-tag': 'Innovation & Technology',
+            'hero-slide1-title': 'Ride Wind',
+            'hero-slide1-sub': 'Redefining Desktop Wind Tunnel Experience',
+            'hero-slide1-desc': 'The Ride Wind wind tunnel miniaturizes professional fluid dynamics equipment, making scientific exploration accessible. Whether you are a student, teacher, or aviation enthusiast, you can intuitively experience the wonders of aerodynamics.',
+            'hero-slide1-btn1': 'Buy Now',
+            'hero-slide1-btn2': 'Watch Demo',
+            'hero-slide2-tag': 'Smart Interaction',
+            'hero-slide2-title': 'APP Real-time Data',
+            'hero-slide2-sub': 'Smarter Analysis',
+            'hero-slide2-desc': 'The exclusive APP displays wind speed and pressure data in real time, supports experiment recording and sharing, making learning more fun and efficient.',
+            'hero-slide2-btn1': 'Download APP',
+            'hero-slide2-btn2': 'Learn More',
+            'hero-slide3-tag': 'Experiment Demo',
+            'hero-slide3-title': 'Intuitive Video Experience',
+            'hero-slide3-sub': 'Explore Airflow Secrets',
+            'hero-slide3-desc': 'Through demo videos, you can intuitively experience the whole process of wind tunnel experiments and stimulate scientific interest.',
+            'hero-slide3-btn1': 'Watch Video',
+            'hero-slide1-title-main': 'Ride Wind',
+            'hero-slide2-title-main': 'APP Real-time Data',
+            'hero-slide3-title-main': 'Intuitive Video Experience',
+            'hero-slide1-btn1-text': 'Buy Now',
+            'hero-slide1-btn2-text': 'Watch Demo',
+            'hero-slide2-btn1-text': 'Download APP',
+            'hero-slide2-btn2-text': 'Learn More',
+            'hero-slide3-btn1-text': 'Watch Video',
+            'explore-about-title': 'About RideWind',
+            'explore-about-desc': 'Learn about our brand story and mission',
+            'explore-contact-title': 'Contact Us',
+            'explore-contact-desc': 'Get pre-sales and after-sales support',
+            'explore-join-title': 'Join Us',
+            'explore-join-desc': 'Become part of the team and create the future together',
+            'explore-events-title': 'User Events',
+            'explore-events-desc': 'Participate in exciting community and offline events',
+            'explore-blog-title': 'Blog',
+            'explore-blog-desc': 'Read the latest news and science content',
+            'explore-more-title': 'Explore More',
+            'explore-more-desc': 'Discover more exciting content',
+            'footer-brand': 'Ride Wind',
+            'footer-desc': 'Dedicated to the research and development of desktop science experiment equipment, making scientific exploration simple and fun.',
+            'footer-subscribe-input': 'Enter your email',
+            'footer-subscribe-btn': 'Subscribe',
+            'footer-link-privacy': 'Privacy Policy',
+            'footer-link-terms': 'Terms of Use',
+            'footer-link-cookie': 'Cookie Policy',
+            'footer-link-map': 'Sitemap',
+            'product-card1-title': 'Inspire Scientific Exploration',
+            'product-card1-desc': 'Visual airflow experiments help users understand fluid mechanics principles and foster scientific thinking and innovation.',
+            'product-card2-title': 'Desktop Wind Tunnel Platform',
+            'product-card2-desc': 'Wind speed adjustable from 0-340km/h, multiple color modes available, experience the charm of wind.',
+            'product-card3-title': 'Smart Interactive Experience',
+            'product-card3-desc': 'Exclusive APP control, multiple modes to explore, making learning more fun.',
+            'product-card4-title': 'Eco-Friendly Design',
+            'product-card4-desc': 'Uses atomizer and purified water as visualization medium, green and eco-friendly, in line with sustainable development.',
+            'purchase-top-title': 'RindWind T1 Model Wind Tunnel - Educational Toy Designed for Model Enthusiasts and Teenagers',
+            'purchase-top-desc1': 'Using ultrasonic precision ceramic vibration technology to break water droplets and generate smoke, making air "visible" and simulating real wind tunnel effects.',
+            'purchase-top-desc2': 'No consumables needed, protects health, allows you to freely explore the natural world',
+            'purchase-feature1': 'Ultrasonic precision ceramic vibration technology',
+            'purchase-feature2': 'No need for expensive smoke oil consumables, economical and eco-friendly',
+            'purchase-feature3': 'APP smart control and multiple entertainment modes',
+            'carousel-main-title': 'Airflow Visualization',
+            'carousel-main-desc': 'Real-time observation of airflow patterns around vehicles',
+            'carousel-left-title': 'Teaching Demo',
+            'carousel-left-desc': 'Inspire students\' scientific exploration interest',
+            'carousel-right-title': 'Research Experiment',
+            'carousel-right-desc': 'Fluid mechanics research and data collection',
+            'usage-title': 'Multi-Scenario Applications',
+            'usage-desc': 'RindWind T1 desktop wind tunnel is suitable for education, scientific research, and entertainment exploration, helping users deeply understand fluid mechanics principles and inspire innovative thinking.',
+            'usage-more': 'View More',
+            'hero-title-main': 'See the Truth, Know the Wind',
+            'hero-title-sub': 'Redefining Desktop Wind Tunnel Experience',
+            'hero-btn-demo': 'Learn More',
+            'hero-btn-buy': 'Buy Now',
+            'purchase-card1-title': 'Premium Design Lines',
+            'purchase-card1-desc': 'Minimalist style, high standards',
+            'purchase-card2-title': 'Highly Realistic Airflow Effects',
+            'purchase-card2-desc': 'Protects health, never compromises on details',
+            'purchase-card3-title': 'Colorful Color Selection',
+            'purchase-card3-desc': 'Great shots, lighting up emotions',
+            'purchase-card4-title': 'App Smart Control Display',
+            'purchase-card4-desc': 'Professional, intelligent, meaningful',
+          }
+        };
+        window.currentLang = 'zh';
+
+        window.addEventListener('DOMContentLoaded', function() {
+          // 导航栏滚动效果
+          const navbar = document.getElementById('navbar');
+          const backToTop = document.getElementById('back-to-top');
+          if (navbar && backToTop) {
+            window.addEventListener('scroll', function() {
+              // 只控制返回顶部按钮显示，不改变导航栏颜色和文字颜色
+              if (window.scrollY > 50) {
+                backToTop.classList.remove('opacity-0', 'translate-y-10');
+                backToTop.classList.add('opacity-100', 'translate-y-0');
+              } else {
+                backToTop.classList.add('opacity-0', 'translate-y-10');
+                backToTop.classList.remove('opacity-100', 'translate-y-0');
+              }
+            });
+          }
+          if (backToTop) {
+            backToTop.addEventListener('click', function() {
+              window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+              });
+            });
+          }
+
+          // 平滑滚动
+          document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+              e.preventDefault();
+              // 关闭移动端菜单
+              const mobileMenuEl = document.getElementById('mobile-menu');
+              if (mobileMenuEl) {
+                mobileMenuEl.classList.add('hidden');
+              }
+              const targetId = this.getAttribute('href');
+              const targetElement = document.querySelector(targetId);
+              if (targetElement) {
+                window.scrollTo({
+                  top: targetElement.offsetTop - 80,
+                  behavior: 'smooth'
+                });
+              }
+            });
+          });
+
+          // FAQ切换
+          const faqToggles = document.querySelectorAll('.faq-toggle');
+          if (faqToggles && faqToggles.length > 0) {
+            faqToggles.forEach(toggle => {
+              toggle.addEventListener('click', function() {
+                const content = this.nextElementSibling;
+                const icon = this.querySelector('i');
+                if (content && icon) {
+                  if (content.classList.contains('hidden')) {
+                    content.classList.remove('hidden');
+                    icon.classList.add('rotate-180');
+                  } else {
+                    content.classList.add('hidden');
+                    icon.classList.remove('rotate-180');
+                  }
+                }
+              });
+            });
+          }
+
+          // 查看更多图片按钮
+          const viewMoreBtn = document.getElementById('gallery-btn-more') || document.getElementById('view-more');
+          if (viewMoreBtn) {
+            viewMoreBtn.addEventListener('click', function() {
+              alert('更多图片将在未来版本中展示，敬请期待！');
+            });
+          }
+
+          // 移动端菜单控制
+          const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+          const mobileMenu = document.getElementById('mobile-menu');
+          const langSwitchMobile = document.getElementById('lang-switch-mobile');
+          
+          if (mobileMenuBtn && mobileMenu) {
+            mobileMenuBtn.addEventListener('click', function(e) {
+              e.stopPropagation();
+              mobileMenu.classList.toggle('hidden');
+            });
+          }
+          
+          // 点击菜单项时关闭菜单
+          if (mobileMenu) {
+            const mobileMenuLinks = mobileMenu.querySelectorAll('a');
+            mobileMenuLinks.forEach(link => {
+              link.addEventListener('click', function() {
+                mobileMenu.classList.add('hidden');
+              });
+            });
+          }
+          
+          // 点击页面其他地方关闭菜单
+          document.addEventListener('click', function(e) {
+            if (mobileMenu && !mobileMenu.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+              mobileMenu.classList.add('hidden');
+            }
+          });
+          
+          // 移动端语言切换 - 先占位，后面会在定义switchLanguage后重新绑定
+          // 这里先不绑定，避免时序问题
+
+          // 用户注册/登录模态框逻辑
+          const userModal = document.getElementById('user-modal');
+          const userAvatarBtn = document.getElementById('user-avatar-btn');
+          const userAvatarBtnMobile = document.getElementById('user-avatar-btn-mobile');
+          const navLoginBtn = document.getElementById('nav-login-btn');
+          const userModalClose = document.getElementById('user-modal-close');
+          const formSms = document.getElementById('form-sms');
+          const formPwd = document.getElementById('form-pwd');
+          const btnSwitchPwd = document.getElementById('btn-switch-pwd');
+          const btnSwitchSms = document.getElementById('btn-switch-sms');
+          const btnSwitchSmsWrap = document.getElementById('btn-switch-sms-wrap');
+          const btnSendCode = document.getElementById('btn-send-code');
+          const btnSmsLogin = document.getElementById('btn-sms-login');
+          const btnPwdLogin = document.getElementById('btn-pwd-login');
+          const agreeProtocol = document.getElementById('agree-protocol');
+          if (userAvatarBtn && userModal) userAvatarBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            userModal.classList.remove('hidden');
+          });
+          if (userAvatarBtnMobile && userModal) userAvatarBtnMobile.addEventListener('click', function(e) {
+            e.stopPropagation();
+            userModal.classList.remove('hidden');
+          });
+          if (navLoginBtn && userModal) navLoginBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            userModal.classList.remove('hidden');
+          });
+          if (userModalClose && userModal) userModalClose.addEventListener('click', function() {
+            userModal.classList.add('hidden');
+          });
+          if (userModal) userModal.addEventListener('click', function(e) {
+            if (e.target === userModal) userModal.classList.add('hidden');
+          });
+          if (btnSwitchPwd && formSms && formPwd && btnSwitchSmsWrap) btnSwitchPwd.addEventListener('click', function() {
+            formSms.classList.add('hidden');
+            formPwd.classList.remove('hidden');
+            btnSwitchPwd.classList.add('hidden');
+            btnSwitchSmsWrap.classList.remove('hidden');
+          });
+          if (btnSwitchSms && formPwd && formSms && btnSwitchPwd && btnSwitchSmsWrap) btnSwitchSms.addEventListener('click', function() {
+            formPwd.classList.add('hidden');
+            formSms.classList.remove('hidden');
+            btnSwitchPwd.classList.remove('hidden');
+            btnSwitchSmsWrap.classList.add('hidden');
+          });
+          function updateSmsBtnState() {
+            const phone = document.getElementById('sms-phone') ? document.getElementById('sms-phone').value.trim() : '';
+            const code = document.getElementById('sms-code') ? document.getElementById('sms-code').value.trim() : '';
+            if (agreeProtocol && btnSmsLogin) {
+              if (agreeProtocol.checked && phone.length === 11 && code.length === 6) {
+                btnSmsLogin.disabled = false;
+                btnSmsLogin.classList.remove('bg-gray-200', 'text-gray-400', 'cursor-not-allowed');
+                btnSmsLogin.classList.add('bg-primary', 'text-white', 'cursor-pointer', 'hover:bg-primary/90');
+              } else {
+                btnSmsLogin.disabled = true;
+                btnSmsLogin.classList.add('bg-gray-200', 'text-gray-400', 'cursor-not-allowed');
+                btnSmsLogin.classList.remove('bg-primary', 'text-white', 'cursor-pointer', 'hover:bg-primary/90');
+              }
+            }
+          }
+          function updatePwdBtnState() {
+            const phone = document.getElementById('pwd-phone') ? document.getElementById('pwd-phone').value.trim() : '';
+            const pwd = document.getElementById('pwd-password') ? document.getElementById('pwd-password').value : '';
+            if (agreeProtocol && btnPwdLogin) {
+              if (agreeProtocol.checked && phone.length === 11 && pwd.length >= 6) {
+                btnPwdLogin.disabled = false;
+                btnPwdLogin.classList.remove('bg-gray-200', 'text-gray-400', 'cursor-not-allowed');
+                btnPwdLogin.classList.add('bg-primary', 'text-white', 'cursor-pointer', 'hover:bg-primary/90');
+              } else {
+                btnPwdLogin.disabled = true;
+                btnPwdLogin.classList.add('bg-gray-200', 'text-gray-400', 'cursor-not-allowed');
+                btnPwdLogin.classList.remove('bg-primary', 'text-white', 'cursor-pointer', 'hover:bg-primary/90');
+              }
+            }
+          }
+          if (agreeProtocol) agreeProtocol.addEventListener('change', function() {
+            updateSmsBtnState();
+            updatePwdBtnState();
+          });
+          if (document.getElementById('sms-phone')) document.getElementById('sms-phone').addEventListener('input', updateSmsBtnState);
+          if (document.getElementById('sms-code')) document.getElementById('sms-code').addEventListener('input', updateSmsBtnState);
+          if (document.getElementById('pwd-phone')) document.getElementById('pwd-phone').addEventListener('input', updatePwdBtnState);
+          if (document.getElementById('pwd-password')) document.getElementById('pwd-password').addEventListener('input', updatePwdBtnState);
+          if (btnSendCode && document.getElementById('sms-phone')) btnSendCode.addEventListener('click', function() {
+            const phone = document.getElementById('sms-phone').value.trim();
+            if (phone.length !== 11) {
+              alert('请输入有效的11位手机号');
+              return;
+            }
+            btnSendCode.disabled = true;
+            btnSendCode.textContent = '已发送(60s)';
+            let sec = 60;
+            const timer = setInterval(() => {
+              sec--;
+              btnSendCode.textContent = `已发送(${sec}s)`;
+              if (sec <= 0) {
+                clearInterval(timer);
+                btnSendCode.disabled = false;
+                btnSendCode.textContent = '发送验证码';
+              }
+            }, 1000);
+            alert('验证码已发送（仅前端演示，无真实短信）');
+          });
+          if (formSms && userModal) formSms.addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('登录/注册成功！（仅前端演示，无后端）');
+            userModal.classList.add('hidden');
+          });
+          if (formPwd && userModal) formPwd.addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('登录成功！（仅前端演示，无后端）');
+            userModal.classList.add('hidden');
+          });
+
+          // 多语言切换
+          const langSwitchBtn = document.getElementById('lang-switch');
+          const langSwitchMobileBtn = document.getElementById('lang-switch-mobile');
+          
+          function switchLanguage() {
+              window.currentLang = window.currentLang === 'zh' ? 'en' : 'zh';
+              var dict = window.langDict[window.currentLang];
+              
+              // 特殊处理轮播区域的元素，完全保留原有样式和HTML结构
+              const heroSlideElements = [
+                {id: 'hero-slide1-tag', preserveClasses: 'text-sm font-medium tracking-widest'},
+                {id: 'hero-slide1-title-main', preserveClasses: null}, // null表示保留原有样式
+                {id: 'hero-slide1-sub', preserveClasses: 'text-gradient bg-gradient-to-r from-primary to-white'},
+                {id: 'hero-slide1-desc', preserveClasses: 'text-lg text-white/80 max-w-xl'},
+                {id: 'hero-slide1-btn1-text', preserveClasses: null}, // null表示保留原有样式
+                {id: 'hero-slide1-btn2-text', preserveClasses: null}, // null表示保留原有样式
+                {id: 'hero-slide2-tag', preserveClasses: 'text-sm font-medium tracking-widest'},
+                {id: 'hero-slide2-title-main', preserveClasses: null}, // null表示保留原有样式
+                {id: 'hero-slide2-sub', preserveClasses: 'text-gradient bg-gradient-to-r from-primary to-white'},
+                {id: 'hero-slide2-desc', preserveClasses: 'text-lg text-white/80 max-w-xl'},
+                {id: 'hero-slide2-btn1-text', preserveClasses: null}, // null表示保留原有样式
+                {id: 'hero-slide2-btn2-text', preserveClasses: null}, // null表示保留原有样式
+                {id: 'hero-slide3-tag', preserveClasses: 'text-sm font-medium tracking-widest'},
+                {id: 'hero-slide3-title-main', preserveClasses: null}, // null表示保留原有样式
+                {id: 'hero-slide3-sub', preserveClasses: 'text-gradient bg-gradient-to-r from-primary to-white'},
+                {id: 'hero-slide3-desc', preserveClasses: 'text-lg text-white/80 max-w-xl'},
+                {id: 'hero-slide3-btn1-text', preserveClasses: null} // null表示保留原有样式
+              ];
+              
+              // 需要排除在通用处理之外的元素ID列表
+              const excludedElements = [
+                ...heroSlideElements.map(item => item.id),
+                'hero-slide1-title',
+                'hero-slide2-title', 
+                'hero-slide3-title',
+                'hero-slide1-btn1',
+                'hero-slide1-btn2',
+                'hero-slide2-btn1', 
+                'hero-slide2-btn2',
+                'hero-slide3-btn1'
+              ];
+              
+              // 处理轮播区域元素，完全保留原有样式和HTML结构
+              heroSlideElements.forEach(item => {
+                const el = document.getElementById(item.id);
+                if (el && dict[item.id]) {
+                  // 保存原有的class和HTML结构
+                  const originalClasses = el.className;
+                  const originalHTML = el.innerHTML;
+                  const originalAttributes = {};
+                  
+                  // 保存所有原有属性
+                  for (let attr of el.attributes) {
+                    originalAttributes[attr.name] = attr.value;
+                  }
+                  
+                  // 智能更新内容，保持HTML结构
+                  if (el.children.length > 0) {
+                    // 如果有子元素，检查是否是span元素
+                    const firstChild = el.firstElementChild;
+                    if (firstChild && firstChild.tagName === 'SPAN') {
+                      // 如果第一个子元素是span，只更新span的内容
+                      firstChild.textContent = dict[item.id];
+                    } else {
+                      // 如果第一个子元素不是span，但有其他子元素，保持原有结构
+                      // 找到第一个文本节点并更新
+                      let textNode = null;
+                      for (let node of el.childNodes) {
+                        if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+                          textNode = node;
+                          break;
+                        }
+                      }
+                      if (textNode) {
+                        textNode.textContent = dict[item.id];
+                      } else {
+                        // 如果没有找到文本节点，在开头插入新文本
+                        el.insertBefore(document.createTextNode(dict[item.id]), el.firstChild);
+                      }
+                    }
+                  } else {
+                    // 如果没有子元素，直接更新文本内容
+                    el.textContent = dict[item.id];
+                  }
+                  
+                  // 恢复原有的class
+                  if (item.preserveClasses !== null) {
+                    el.className = item.preserveClasses;
+                  } else {
+                    // 如果preserveClasses为null，则恢复原有的className
+                    el.className = originalClasses;
+                  }
+                  
+                  // 恢复所有原有属性
+                  for (let attrName in originalAttributes) {
+                    if (attrName !== 'id') { // 不覆盖id属性
+                      el.setAttribute(attrName, originalAttributes[attrName]);
+                    }
+                  }
+                }
+              });
+              
+              // 特殊处理轮播区域的复杂HTML结构（如标题）
+              const heroTitleElements = [
+                'hero-slide1-title',
+                'hero-slide2-title', 
+                'hero-slide3-title'
+              ];
+              
+              heroTitleElements.forEach(titleId => {
+                const titleEl = document.getElementById(titleId);
+                if (titleEl) {
+                  // 保存原有的HTML结构
+                  const originalHTML = titleEl.innerHTML;
+                  const originalClasses = titleEl.className;
+                  const originalAttributes = {};
+                  
+                  // 保存所有原有属性
+                  for (let attr of titleEl.attributes) {
+                    originalAttributes[attr.name] = attr.value;
+                  }
+                  
+                  // 获取对应的主标题和副标题文本
+                  const mainTitleId = titleId.replace('-title', '-title-main');
+                  const subTitleId = titleId.replace('-title', '-sub');
+                  const mainTitleText = dict[mainTitleId] || '';
+                  const subTitleText = dict[subTitleId] || '';
+                  
+                  // 重建HTML结构，保持原有的span和br标签
+                  if (mainTitleText && subTitleText) {
+                    titleEl.innerHTML = `<span id="${mainTitleId}">${mainTitleText}</span><br/><span id="${subTitleId}" class="text-gradient bg-gradient-to-r from-primary to-white">${subTitleText}</span>`;
+                  } else if (mainTitleText) {
+                    titleEl.innerHTML = `<span id="${mainTitleId}">${mainTitleText}</span>`;
+                  }
+                  
+                  // 恢复原有的class和属性
+                  titleEl.className = originalClasses;
+                  for (let attrName in originalAttributes) {
+                    if (attrName !== 'id') {
+                      titleEl.setAttribute(attrName, originalAttributes[attrName]);
+                    }
+                  }
+                }
+              });
+              
+              // 特殊处理轮播区域的按钮，确保保留图标和样式
+              const heroButtonElements = [
+                'hero-slide1-btn1',
+                'hero-slide1-btn2',
+                'hero-slide2-btn1', 
+                'hero-slide2-btn2',
+                'hero-slide3-btn1'
+              ];
+              
+              heroButtonElements.forEach(btnId => {
+                const btnEl = document.getElementById(btnId);
+                if (btnEl) {
+                  // 保存原有的HTML结构和属性
+                  const originalClasses = btnEl.className;
+                  const originalAttributes = {};
+                  for (let attr of btnEl.attributes) {
+                    originalAttributes[attr.name] = attr.value;
+                  }
+                  
+                  // 获取按钮文本ID
+                  const btnTextId = btnId + '-text';
+                  const btnText = dict[btnTextId] || '';
+                  
+                  // 检查是否有图标
+                  const hasIcon = btnEl.querySelector('i');
+                  const iconHTML = hasIcon ? hasIcon.outerHTML : '';
+                  
+                  // 重建按钮内容，保留图标
+                  if (btnText) {
+                    if (hasIcon) {
+                      btnEl.innerHTML = `<span id="${btnTextId}">${btnText}</span> ${iconHTML}`;
+                    } else {
+                      btnEl.innerHTML = `<span id="${btnTextId}">${btnText}</span>`;
+                    }
+                  }
+                  
+                  // 恢复原有的class和属性
+                  btnEl.className = originalClasses;
+                  for (let attrName in originalAttributes) {
+                    if (attrName !== 'id') {
+                      btnEl.setAttribute(attrName, originalAttributes[attrName]);
+                    }
+                  }
+                }
+              });
+              
+              // 处理其他元素
+              for (var key in dict) {
+                // 跳过已经处理过的轮播区域元素
+                if (excludedElements.includes(key)) continue;
+                
+                var el = document.getElementById(key);
+                if (el) {
+                  // 保存原有样式和属性
+                  const originalClasses = el.className;
+                  const originalAttributes = {};
+                  for (let attr of el.attributes) {
+                    originalAttributes[attr.name] = attr.value;
+                  }
+                  
+                  if (el.tagName === 'INPUT') {
+                    el.placeholder = dict[key];
+                  } else if ((el.tagName === 'BUTTON' || el.tagName === 'A') && el.querySelector('i')) {
+                    // 只替换文本节点，保留icon和其他子节点
+                    let hasText = false;
+                    el.childNodes.forEach(node => {
+                      if (node.nodeType === Node.TEXT_NODE) {
+                        node.textContent = ' ' + dict[key];
+                        hasText = true;
+                      }
+                    });
+                    if (!hasText) {
+                      el.append(' ' + dict[key]);
+                    }
+                  } else {
+                    el.textContent = dict[key];
+                  }
+                  
+                  // 恢复原有样式和属性
+                  el.className = originalClasses;
+                  for (let attrName in originalAttributes) {
+                    if (attrName !== 'id') { // 不覆盖id属性
+                      el.setAttribute(attrName, originalAttributes[attrName]);
+                    }
+                  }
+                }
+              }
+              
+              // 更新所有语言切换按钮的文本
+              if (langSwitchBtn) {
+                langSwitchBtn.textContent = window.langDict[window.currentLang]['lang-switch'];
+              }
+              if (langSwitchMobileBtn) {
+                langSwitchMobileBtn.textContent = window.currentLang === 'zh' ? 'EN' : '中';
+              }
+          }
+          
+          // 绑定桌面端语言切换按钮
+          if (langSwitchBtn) {
+            langSwitchBtn.addEventListener('click', switchLanguage);
+          }
+          
+          // 绑定移动端语言切换按钮 - 直接调用switchLanguage函数
+          if (langSwitchMobileBtn) {
+            langSwitchMobileBtn.addEventListener('click', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              switchLanguage();
+            });
+          }
+
+          // 探索下拉菜单三角动画
+          const navExplore = document.getElementById('nav-explore');
+          const exploreCorner = document.getElementById('explore-corner');
+          if(navExplore && exploreCorner) {
+            navExplore.addEventListener('mouseenter', function() {
+              exploreCorner.classList.remove('rotate-0');
+              exploreCorner.classList.add('rotate-180');
+              exploreCorner.style.transform = 'rotate(180deg)'; // 兜底，确保180°
+            });
+            navExplore.addEventListener('mouseleave', function() {
+              exploreCorner.classList.remove('rotate-180');
+              exploreCorner.classList.add('rotate-0');
+              exploreCorner.style.transform = '';
+            });
+          }
+
+          // 软件下拉菜单三角动画
+          const navSoftware = document.getElementById('nav-software');
+          const softwareCorner = document.getElementById('software-corner');
+          if(navSoftware && softwareCorner) {
+            navSoftware.addEventListener('mouseenter', function() {
+              softwareCorner.classList.remove('rotate-0');
+              softwareCorner.classList.add('rotate-180');
+              softwareCorner.style.transform = 'rotate(180deg)'; // 兜底，确保180°
+            });
+            navSoftware.addEventListener('mouseleave', function() {
+              softwareCorner.classList.remove('rotate-180');
+              softwareCorner.classList.add('rotate-0');
+              softwareCorner.style.transform = '';
+            });
+          }
+
+          // 立即购买弹窗逻辑
+          const buyBtn = document.getElementById('purchase-btn-buy');
+          const buyModal = document.getElementById('buy-modal');
+          const buyModalClose = document.getElementById('buy-modal-close');
+          if (buyBtn && buyModal) {
+            buyBtn.addEventListener('click', function() {
+              buyModal.classList.remove('hidden');
+            });
+          }
+          if (buyModalClose && buyModal) {
+            buyModalClose.addEventListener('click', function() {
+              buyModal.classList.add('hidden');
+            });
+          }
+          if (buyModal) {
+            buyModal.addEventListener('click', function(e) {
+              if (e.target === buyModal) buyModal.classList.add('hidden');
+            });
+          }
+
+          // QQ/微信扫码登录弹窗逻辑
+          const qqBtn = document.querySelector('.fa-qq') ? document.querySelector('.fa-qq').parentElement : null;
+          const wxBtn = document.querySelector('.fa-wechat') ? document.querySelector('.fa-wechat').parentElement : null;
+          const githubBtn = document.querySelector('.fa-github') ? document.querySelector('.fa-github').parentElement : null;
+          const qrModal = document.getElementById('qr-modal');
+          const qrModalClose = document.getElementById('qr-modal-close');
+          const qrModalImg = document.getElementById('qr-modal-img');
+          const qrModalTitle = document.getElementById('qr-modal-title');
+          const qrModalTip = document.getElementById('qr-modal-tip');
+
+          if (qqBtn && qrModal) {
+            qqBtn.addEventListener('click', function() {
+              qrModal.classList.remove('hidden');
+              qrModalTitle.textContent = 'QQ扫码登录';
+              qrModalImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://graph.qq.com/oauth2.0/authorize';
+              qrModalTip.textContent = '请使用QQ扫码登录（仅演示二维码）';
+            });
+          }
+          if (wxBtn && qrModal) {
+            wxBtn.addEventListener('click', function() {
+              qrModal.classList.remove('hidden');
+              qrModalTitle.textContent = '微信扫码登录';
+              qrModalImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://open.weixin.qq.com/connect/qrconnect';
+              qrModalTip.textContent = '请使用微信扫码登录（仅演示二维码）';
+            });
+          }
+          if (githubBtn && qrModal) {
+            githubBtn.addEventListener('click', function() {
+              qrModal.classList.remove('hidden');
+              qrModalTitle.textContent = 'GitHub扫码登录';
+              qrModalImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://github.com/login/oauth/authorize';
+              qrModalTip.textContent = '请使用GitHub扫码登录（仅演示二维码）';
+            });
+          }
+          if (qrModalClose && qrModal) {
+            qrModalClose.addEventListener('click', function() {
+              qrModal.classList.add('hidden');
+            });
+          }
+          if (qrModal) {
+            qrModal.addEventListener('click', function(e) {
+              if (e.target === qrModal) qrModal.classList.add('hidden');
+            });
+          }
+
+          // APP下载弹窗逻辑
+          const appDownloadBtn = document.getElementById('nav-app');
+          const appDownloadModal = document.getElementById('app-download-modal');
+          const appDownloadModalClose = document.getElementById('app-download-modal-close');
+          if (appDownloadBtn && appDownloadModal) {
+            appDownloadBtn.addEventListener('click', function(e) {
+              e.preventDefault();
+              appDownloadModal.classList.remove('hidden');
+            });
+          }
+          if (appDownloadModalClose && appDownloadModal) {
+            appDownloadModalClose.addEventListener('click', function() {
+              appDownloadModal.classList.add('hidden');
+            });
+          }
+          if (appDownloadModal) {
+            appDownloadModal.addEventListener('click', function(e) {
+              if (e.target === appDownloadModal) appDownloadModal.classList.add('hidden');
+            });
+          }
+
+          // 多语言支持APP下载弹窗
+          if (window.langDict && window.langDict.zh && window.langDict.en) {
+            window.langDict.zh['app-download-modal-title'] = '选择下载平台';
+            window.langDict.zh['app-download-win-text'] = 'Windows 版下载';
+            window.langDict.zh['app-download-mac-text'] = 'Mac 版下载';
+            window.langDict.en['app-download-modal-title'] = 'Choose Download Platform';
+            window.langDict.en['app-download-win-text'] = 'Download for Windows';
+            window.langDict.en['app-download-mac-text'] = 'Download for Mac';
+          }
+
+          // 多语言切换时同步APP下载弹窗
+          if (langSwitchBtn) {
+            const oldLangSwitch = langSwitchBtn.onclick;
+            langSwitchBtn.onclick = function() {
+              if (typeof oldLangSwitch === 'function') oldLangSwitch.call(this);
+              var dict = window.langDict[window.currentLang];
+              ['app-download-modal-title','app-download-win-text','app-download-mac-text'].forEach(function(key) {
+                var el = document.getElementById(key);
+                if (el && dict[key]) el.textContent = dict[key];
+              });
+            };
+          }
+
+          // 下载APP弹窗交互（升级版）
+          var appBtn = document.getElementById('hero-slide2-btn1');
+          var appModal = document.getElementById('app-coming-modal');
+          var appClose = document.getElementById('app-coming-close');
+          function closeModal() {
+            appModal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+          }
+          if(appBtn && appModal && appClose) {
+            appBtn.addEventListener('click', function(e) {
+              e.preventDefault();
+              appModal.classList.remove('hidden');
+              document.body.classList.add('overflow-hidden');
+            });
+            appClose.addEventListener('click', closeModal);
+            appModal.addEventListener('click', function(e) {
+              if(e.target === appModal) closeModal();
+            });
+            document.addEventListener('keydown', function(e) {
+              if(!appModal.classList.contains('hidden') && e.key === 'Escape') closeModal();
+            });
+          }
+        });
+    </script>
+
+    <!-- 购买弹窗 -->
+    <div id="buy-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-[999] hidden">
+      <div class="bg-white rounded-2xl p-8 shadow-2xl relative w-full max-w-md">
+        <button id="buy-modal-close" class="absolute top-4 right-4 text-gray-400 hover:text-primary text-2xl">
+          <i class="fa fa-times"></i>
+        </button>
+        <h2 class="text-xl font-bold mb-4 text-center">扫码购买</h2>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://item.jd.com/100012043978.html" alt="购买二维码" class="mx-auto mb-4 w-48 h-48 object-contain rounded-lg shadow">
+        <div class="text-center text-gray-700 mb-2">
+          <span class="font-semibold">京东旗舰店</span> | <span class="font-semibold">官方正品保障</span>
+        </div>
+        <p class="text-center text-gray-600 mb-2">使用微信或京东APP扫码，直达购买页面。</p>
+        <a href="https://item.jd.com/100012043978.html" target="_blank" class="block text-center bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-semibold transition mb-2">点击直达京东购买</a>
+        <p class="text-xs text-gray-400 text-center">如遇问题请联系客服：400-123-4567</p>
+      </div>
+    </div>
+
+    <!-- 通用二维码弹窗 -->
+    <div id="qr-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-[999] hidden">
+      <div class="bg-white rounded-2xl p-8 shadow-2xl relative w-full max-w-xs">
+        <button id="qr-modal-close" class="absolute top-4 right-4 text-gray-400 hover:text-primary text-2xl">
+          <i class="fa fa-times"></i>
+        </button>
+        <h2 id="qr-modal-title" class="text-xl font-bold mb-4 text-center">扫码登录</h2>
+        <img id="qr-modal-img" src="" alt="二维码" class="mx-auto mb-4 w-48 h-48 object-contain rounded-lg shadow">
+        <div id="qr-modal-tip" class="text-center text-gray-700"></div>
+      </div>
+    </div>
+
+    <!-- APP下载弹窗 -->
+    <div id="app-download-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-[999] hidden">
+      <div class="bg-white rounded-2xl p-8 shadow-2xl relative w-full max-w-md">
+        <button id="app-download-modal-close" class="absolute top-4 right-4 text-gray-400 hover:text-primary text-2xl">
+          <i class="fa fa-times"></i>
+        </button>
+        <h2 id="app-download-modal-title" class="text-xl font-bold mb-8 text-center">选择下载平台</h2>
+        <div class="flex flex-col gap-6">
+          <a id="app-download-win" href="https://example.com/windows-download" target="_blank" class="flex items-center justify-center gap-3 bg-black text-white text-lg font-semibold rounded-lg py-4 hover:bg-primary transition">
+            <i class="fa fa-windows text-2xl"></i> <span id="app-download-win-text">Windows 版下载</span>
+          </a>
+          <a id="app-download-mac" href="https://example.com/mac-download" target="_blank" class="flex items-center justify-center gap-3 bg-black text-white text-lg font-semibold rounded-lg py-4 hover:bg-primary transition">
+            <i class="fa fa-apple text-2xl"></i> <span id="app-download-mac-text">Mac 版下载</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 首页风格轮播JS -->
+    <script>
+    (function(){
+      const slides = document.querySelectorAll('#hero-carousel .hero-slide');
+      const dots = document.querySelectorAll('#hero-carousel .hero-dot');
+      const prev = document.getElementById('hero-prev');
+      const next = document.getElementById('hero-next');
+      let idx = 0;
+      let timer = null;
+      function show(i) {
+        slides.forEach((el, j) => {
+          el.style.opacity = (j === i) ? '1' : '0';
+          el.style.zIndex = (j === i) ? '2' : '1';
+        });
+        dots.forEach((d, j) => {
+          d.classList.toggle('bg-white/60', j === i);
+          d.classList.toggle('bg-white/30', j !== i);
+        });
+        idx = i;
+      }
+      function nextSlide() {
+        show((idx+1)%slides.length);
+      }
+      function prevSlide() {
+        show((idx-1+slides.length)%slides.length);
+      }
+      if(prev) prev.onclick = prevSlide;
+      if(next) next.onclick = nextSlide;
+      dots.forEach((d, i) => d.onclick = ()=>show(i));
+      function auto() {
+        timer = setInterval(nextSlide, 6000);
+      }
+      function stop() {
+        if(timer) clearInterval(timer);
+      }
+      if(slides.length>0) {
+        show(0);
+        auto();
+        const carousel = document.getElementById('hero-carousel');
+        if(carousel) {
+          carousel.addEventListener('mouseenter', stop);
+          carousel.addEventListener('mouseleave', auto);
+        }
+      }
+    })();
+    </script>
+
+    <!-- APP即将上线弹窗（升级版） -->
+    <div id="app-coming-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden transition-opacity duration-300">
+      <div class="bg-white rounded-2xl p-8 shadow-2xl w-full max-w-md text-center relative animate-fadeIn">
+        <button id="app-coming-close" class="absolute top-4 right-4 text-gray-400 hover:text-primary text-2xl">
+          <i class="fa fa-times"></i>
+        </button>
+        <h2 class="text-xl font-bold mb-4">APP即将上线</h2>
+        <p class="text-gray-700 mb-4">敬请期待，或关注我们的公众号获取最新动态！</p>
+        <!-- 可选二维码 -->
+        <!-- <img src="your-qrcode.png" alt="公众号二维码" class="mx-auto mb-4 w-32 h-32"> -->
+      </div>
+    </div>
+    <style>
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.95);} to { opacity: 1; transform: scale(1);} }
+    .animate-fadeIn { animation: fadeIn 0.3s; }
+    </style>
+
+    
+    

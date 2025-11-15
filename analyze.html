@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数据分析工具 - 驭风少年</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#165DFF',
+            secondary: '#0E2E5C',
+            accent: '#00C2FF',
+            dark: '#1D2129',
+            light: '#F2F3F5'
+          },
+          fontFamily: {
+            inter: ['Inter', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .text-gradient { background-clip: text; -webkit-background-clip: text; color: transparent; }
+  </style>
+</head>
+<body class="bg-light min-h-screen text-dark">
+  <div class="min-h-screen flex flex-col">
+    <header class="bg-black text-white py-4 shadow-md">
+      <div class="container mx-auto flex justify-between items-center px-4">
+        <a href="yufengshaonian.html" class="flex items-center space-x-2">
+          <div class="w-10 h-10 bg-black rounded-lg flex items-center justify-center border border-white/10">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="2" width="24" height="24" stroke="white" stroke-width="2"/>
+              <line x1="3" y1="25" x2="25" y2="3" stroke="white" stroke-width="2"/>
+              <circle cx="19" cy="19" r="7" stroke="white" stroke-width="2"/>
+            </svg>
+          </div>
+          <span class="text-xl font-bold">驭风少年</span>
+        </a>
+        <span class="text-lg font-semibold">数据分析工具</span>
+        <button id="lang-switch" class="px-4 py-1.5 rounded-full font-semibold text-base bg-gradient-to-r from-primary via-accent to-blue-400 text-white shadow-lg ring-2 ring-primary/30 hover:from-blue-500 hover:to-primary hover:scale-105 hover:shadow-2xl hover:ring-accent/60 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-accent/40">English</button>
+      </div>
+    </header>
+    <main class="flex-1 flex flex-col items-center justify-center py-12 px-4">
+      <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-3xl">
+        <h1 id="analyze-title" class="text-3xl font-bold mb-4 text-center">数据分析工具</h1>
+        <p id="analyze-desc" class="text-gray-600 mb-8 text-center">上传风洞实验数据（CSV/Excel），自动生成图表，支持导出图片。</p>
+        <div class="flex flex-col md:flex-row gap-4 items-center justify-center mb-6">
+          <input id="file-input" type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" class="block w-full md:w-auto border border-gray-300 rounded-lg px-4 py-2" />
+          <button id="demo-btn" class="bg-primary text-white px-6 py-2 rounded-lg font-semibold shadow hover:bg-primary/90 transition">演示数据</button>
+        </div>
+        <div id="table-wrap" class="overflow-x-auto mb-8 hidden">
+          <table id="data-table" class="min-w-full border text-sm text-center"></table>
+        </div>
+        <div class="mb-8">
+          <canvas id="chart" height="120"></canvas>
+        </div>
+        <div class="flex justify-center gap-4">
+          <button id="export-img" class="bg-gradient-to-r from-primary via-accent to-blue-400 text-white px-6 py-2 rounded-lg font-semibold shadow hover:from-blue-500 hover:to-primary transition">导出图表图片</button>
+        </div>
+      </div>
+    </main>
+    <footer class="bg-dark text-white py-6 text-center text-sm mt-8">
+      © 2025 驭风少年科技有限公司 | <a href="yufengshaonian.html" class="underline hover:text-primary">返回首页</a>
+    </footer>
+  </div>
+  <script>
+    // 多语言字典
+    const langDict = {
+      zh: {
+        'analyze-title': '数据分析工具',
+        'analyze-desc': '上传风洞实验数据（CSV/Excel），自动生成图表，支持导出图片。',
+        'demo-btn': '演示数据',
+        'export-img': '导出图表图片',
+        'file-input': '',
+        'no-data': '请上传数据文件',
+        'chart-title': '实验数据图表',
+        'header-title': '数据分析工具',
+        'footer-back': '返回首页',
+      },
+      en: {
+        'analyze-title': 'Data Analysis Tool',
+        'analyze-desc': 'Upload wind tunnel experiment data (CSV/Excel), auto-generate charts, export as image.',
+        'demo-btn': 'Demo Data',
+        'export-img': 'Export Chart Image',
+        'file-input': '',
+        'no-data': 'Please upload a data file',
+        'chart-title': 'Experiment Data Chart',
+        'header-title': 'Data Analysis Tool',
+        'footer-back': 'Back to Home',
+      }
+    };
+    let currentLang = 'zh';
+    function switchLang() {
+      currentLang = currentLang === 'zh' ? 'en' : 'zh';
+      const dict = langDict[currentLang];
+      for (const key in dict) {
+        const el = document.getElementById(key);
+        if (el) {
+          if (el.tagName === 'INPUT') {
+            el.placeholder = dict[key];
+          } else {
+            el.textContent = dict[key];
+          }
+        }
+      }
+      document.getElementById('lang-switch').textContent = currentLang === 'zh' ? 'English' : '中文';
+      // footer链接
+      document.querySelector('footer a').textContent = dict['footer-back'];
+      document.querySelector('header span.text-lg').textContent = dict['header-title'];
+    }
+    document.getElementById('lang-switch').onclick = switchLang;
+    // 解析CSV并渲染表格和图表
+    let chart;
+    function renderTable(data) {
+      const table = document.getElementById('data-table');
+      table.innerHTML = '';
+      if (!data || !data.length) return;
+      // 表头
+      const thead = document.createElement('thead');
+      const tr = document.createElement('tr');
+      data[0].forEach(cell => {
+        const th = document.createElement('th');
+        th.className = 'border px-2 py-1 bg-gray-100';
+        th.textContent = cell;
+        tr.appendChild(th);
+      });
+      thead.appendChild(tr);
+      table.appendChild(thead);
+      // 表体
+      const tbody = document.createElement('tbody');
+      for (let i = 1; i < data.length; i++) {
+        const tr = document.createElement('tr');
+        data[i].forEach(cell => {
+          const td = document.createElement('td');
+          td.className = 'border px-2 py-1';
+          td.textContent = cell;
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      }
+      table.appendChild(tbody);
+      document.getElementById('table-wrap').classList.remove('hidden');
+    }
+    function renderChart(data) {
+      if (!data || data.length < 2) return;
+      const labels = data.slice(1).map(row => row[0]);
+      const datasets = [];
+      for (let col = 1; col < data[0].length; col++) {
+        datasets.push({
+          label: data[0][col],
+          data: data.slice(1).map(row => parseFloat(row[col]) || 0),
+          fill: false,
+          borderColor: `hsl(${col * 60}, 70%, 50%)`,
+          backgroundColor: `hsl(${col * 60}, 70%, 50%)`,
+          tension: 0.3
+        });
+      }
+      const ctx = document.getElementById('chart').getContext('2d');
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: true },
+            title: { display: true, text: langDict[currentLang]['chart-title'] }
+          }
+        }
+      });
+    }
+    function handleFile(file) {
+      if (!file) return;
+      Papa.parse(file, {
+        complete: function(results) {
+          renderTable(results.data);
+          renderChart(results.data);
+        }
+      });
+    }
+    document.getElementById('file-input').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      handleFile(file);
+    });
+    // 演示数据
+    document.getElementById('demo-btn').onclick = function() {
+      const demo = [
+        ['时间(s)', '风速(m/s)', '压力(Pa)'],
+        ['0', '0', '0'],
+        ['1', '2.1', '10'],
+        ['2', '4.2', '22'],
+        ['3', '6.0', '35'],
+        ['4', '7.8', '50'],
+        ['5', '9.5', '68'],
+        ['6', '11.0', '90'],
+        ['7', '12.2', '115'],
+        ['8', '13.0', '140'],
+        ['9', '13.5', '160'],
+        ['10', '14.0', '180']
+      ];
+      renderTable(demo);
+      renderChart(demo);
+    };
+    // 导出图片
+    document.getElementById('export-img').onclick = function() {
+      if (!chart) return;
+      const url = chart.toBase64Image();
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'chart.png';
+      a.click();
+    };
+  </script>
+</body>
+</html> 
